@@ -37,7 +37,32 @@
 - `databricks.yml` - Dev config
 - `databricks.staging_prod.yml` - Staging/prod config
 
-### Check Current Config
+---
+
+## 📝 Adding New Knowledge Base Documents
+
+1. **Add file to `knowledge_base/` folder**
+   ```bash
+   # Example: Add new guide
+   echo "Your content here" > knowledge_base/my_new_guide.txt
+   ```
+
+2. **Deploy incrementally**
+   ```bash
+   ./deploy.sh dev  # or staging/prod
+   ```
+
+3. **Files are automatically:**
+   - Discovered from `knowledge_base/` folder
+   - Uploaded to UC Volume
+   - Processed with chunking
+   - Indexed in Vector Search
+
+**No code changes needed!** The system automatically discovers and processes new files.
+
+---
+
+## 🔄 Config Management
 ```bash
 ./swap_config.sh status
 ```
