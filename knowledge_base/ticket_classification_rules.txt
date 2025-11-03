@@ -1,0 +1,533 @@
+===========================================
+TICKET CLASSIFICATION RULES
+Priority, Urgency, Routing & SLA Guidelines
+===========================================
+
+SECTION 1: PRIORITY DEFINITIONS
+-------------------------------------------
+
+P1 - CRITICAL
+Business Impact:
+- Complete service outage affecting multiple users
+- Data breach or security incident in progress
+- Revenue-generating system down
+- Customer-facing application unavailable
+- Data loss or corruption
+- Legal or regulatory violation
+
+Examples:
+- Production database down
+- Website completely inaccessible
+- Active ransomware attack
+- Payment processing system failure
+- Email system down organization-wide
+
+Response Time: 15 minutes
+Resolution Target: 4 hours
+Escalation: Immediate to on-call engineers
+After Hours: Page on-call team
+Updates: Every 30 minutes until resolved
+
+P2 - HIGH
+Business Impact:
+- Significant degradation of service
+- Security vulnerability identified
+- Multiple users affected
+- Important functionality unavailable
+- Workaround available but inadequate
+- Potential for escalation to P1
+
+Examples:
+- Application slow but functional
+- Single server in cluster failed
+- VPN intermittent connectivity
+- Report generation failing
+- Phishing email received
+- Backup job failed
+
+Response Time: 30 minutes
+Resolution Target: 8 hours
+Escalation: After 4 hours to senior engineer
+After Hours: Email/SMS to on-call (no page)
+Updates: Every 2 hours
+
+P3 - MEDIUM
+Business Impact:
+- Isolated user issue
+- Minor functionality problem
+- Good workaround available
+- Non-urgent feature request
+- Standard service request
+- Scheduled maintenance planning
+
+Examples:
+- Single user cannot print
+- Minor UI bug
+- Password reset needed
+- Software installation request
+- Access request for non-critical system
+- Training request
+
+Response Time: 2 hours
+Resolution Target: 2 business days
+Escalation: After 1 day to team lead
+After Hours: Wait until next business day
+Updates: Daily
+
+P4 - LOW
+Business Impact:
+- Informational request
+- Enhancement suggestion
+- Documentation request
+- Question or "how-to"
+- Non-urgent cosmetic issue
+- Future planning
+
+Examples:
+- Feature enhancement idea
+- Documentation improvement
+- General question about functionality
+- Scheduled future changes
+- Routine system maintenance
+
+Response Time: 1 business day
+Resolution Target: 5 business days
+Escalation: After 3 days if needed
+After Hours: Wait until next business day
+Updates: When status changes
+
+SECTION 2: URGENCY LEVELS
+-------------------------------------------
+
+CRITICAL URGENCY
+Characteristics:
+- Business operations stopped or severely impacted
+- Immediate financial loss occurring
+- Safety or security risk
+- Legal/regulatory deadline at risk
+- Executive-level visibility
+
+Actions:
+- Drop all other work
+- Engage incident commander
+- Mobilize response team
+- Continuous communication
+- Document all actions in real-time
+
+HIGH URGENCY
+Characteristics:
+- Deadline within 24 hours
+- Multiple users impacted
+- Customer escalation
+- Manager involvement
+- Business process blocked
+
+Actions:
+- Prioritize over normal workload
+- Assign senior resource
+- Regular progress updates
+- Identify workarounds
+- Escalate proactively if at risk
+
+MEDIUM URGENCY
+Characteristics:
+- Standard SLA applies
+- Single user or small group affected
+- Reasonable timeframe for resolution
+- Minimal business impact
+- Workaround available
+
+Actions:
+- Work in normal queue order
+- Follow standard procedures
+- Provide regular updates per SLA
+- Document resolution
+
+LOW URGENCY
+Characteristics:
+- No specific deadline
+- Nice to have, not need to have
+- No business impact if delayed
+- Can be scheduled for convenience
+
+Actions:
+- Work during low-demand periods
+- Batch with similar requests
+- Optimize for efficiency
+- May be deferred if higher priorities arise
+
+SECTION 3: TEAM ASSIGNMENT RULES
+-------------------------------------------
+
+INFRASTRUCTURE TEAM
+Responsibilities:
+- Server administration (Windows, Linux)
+- Network infrastructure
+- Storage and backup systems
+- Virtualization platforms
+- Load balancers
+- Database server infrastructure
+- Monitoring systems
+- Disaster recovery
+
+Keywords Triggering Assignment:
+server, network, firewall, VPN, backup, storage, disk space, 
+CPU, memory, database server, virtual machine, VM, ESXi, 
+vCenter, load balancer, switch, router
+
+APPLICATIONS TEAM
+Responsibilities:
+- Business application support
+- Application performance issues
+- Application user access
+- Application configuration
+- Integration issues
+- Third-party applications
+- Custom application development support
+- Application upgrades
+
+Keywords Triggering Assignment:
+application slow, cannot login, application error, feature not working,
+ERP, CRM, report not loading, data incorrect, integration failed,
+API error, timeout, session expired
+
+SECURITY TEAM
+Responsibilities:
+- Security incidents
+- Access control policy
+- Vulnerability management
+- Security awareness
+- Compliance auditing
+- Threat detection and response
+- Security tool administration
+- Penetration testing
+
+Keywords Triggering Assignment:
+security, breach, phishing, malware, ransomware, suspicious activity,
+unauthorized access, hacked, virus, data leak, vulnerability,
+compliance, audit, encryption, certificate
+
+END USER SUPPORT TEAM
+Responsibilities:
+- Desktop/laptop issues
+- Mobile device support
+- Printer issues
+- Software installation
+- Password resets
+- Basic troubleshooting
+- User training
+- Peripheral devices
+
+Keywords Triggering Assignment:
+password reset, cannot print, laptop issue, screen problem,
+keyboard, mouse, install software, Outlook issue, Teams not working,
+mobile device, iPhone, Android, home office, remote work
+
+IDENTITY & ACCESS MANAGEMENT TEAM
+Responsibilities:
+- Account provisioning
+- Access requests
+- Role changes
+- MFA administration
+- SSO configuration
+- Account deactivation
+- Access reviews
+- Privileged access management
+
+Keywords Triggering Assignment:
+new user, new hire, access request, permissions, role change,
+termination, disable account, MFA, two-factor, SSO, Active Directory,
+user account, group membership, contractor access
+
+DATABASE TEAM
+Responsibilities:
+- Database administration
+- Query optimization
+- Database performance tuning
+- Backup and recovery
+- Database upgrades
+- Schema changes
+- Replication issues
+- Database security
+
+Keywords Triggering Assignment:
+database slow, query timeout, SQL error, database connection,
+deadlock, table lock, index, database backup, restore database,
+replication lag, database space
+
+CLOUD TEAM
+Responsibilities:
+- Cloud infrastructure (AWS, Azure, GCP)
+- Cloud services management
+- Cloud cost optimization
+- Cloud security
+- Cloud migrations
+- IaaS/PaaS/SaaS administration
+- Serverless computing
+- Container orchestration
+
+Keywords Triggering Assignment:
+AWS, Azure, GCP, cloud, EC2, S3, Lambda, Kubernetes, Docker,
+container, cloud storage, cloud database, API gateway, 
+cloud function, serverless, IAM role
+
+SECTION 4: CATEGORY CLASSIFICATION
+-------------------------------------------
+
+INCIDENT vs REQUEST vs PROBLEM
+
+INCIDENT:
+- Unplanned interruption or reduction in service quality
+- Something broke or isn't working as expected
+- Requires restoration of normal service
+- Focus on speed of resolution
+
+Examples:
+- Application crashed
+- Server down
+- Network outage
+- Data corruption
+- Performance degradation
+
+REQUEST:
+- Service Request (user asking for something)
+- Planned and expected
+- No service disruption
+- Standard procedure exists
+
+Examples:
+- Password reset
+- Software installation
+- Access request
+- New equipment order
+- Information request
+
+PROBLEM:
+- Root cause of one or multiple incidents
+- Requires investigation
+- Long-term solution needed
+- Prevents future incidents
+
+Examples:
+- Recurring application crashes
+- Frequent network timeouts
+- Pattern of account lockouts
+- Systemic performance issues
+
+SECTION 5: CATEGORY TAXONOMY
+-------------------------------------------
+
+HARDWARE
+├── Desktop/Laptop
+│   ├── Hardware failure
+│   ├── Performance issues
+│   └── Peripherals
+├── Server
+│   ├── Hardware failure
+│   ├── Capacity issues
+│   └── Maintenance
+├── Network Equipment
+│   ├── Switch/Router
+│   ├── Firewall
+│   └── Load Balancer
+└── Printers/Scanners
+
+SOFTWARE
+├── Operating System
+│   ├── Windows
+│   ├── Linux/Unix
+│   └── macOS
+├── Business Applications
+│   ├── ERP
+│   ├── CRM
+│   ├── HR Systems
+│   └── Finance Systems
+├── Productivity
+│   ├── Email
+│   ├── Office Suite
+│   ├── Collaboration Tools
+│   └── Web Browsers
+└── Development Tools
+
+SECURITY
+├── Access Control
+│   ├── Account Management
+│   ├── Authentication
+│   └── Authorization
+├── Security Incidents
+│   ├── Malware
+│   ├── Phishing
+│   ├── Data Breach
+│   └── Unauthorized Access
+└── Compliance
+    ├── Audit
+    ├── Policy Violation
+    └── Regulatory
+
+INFRASTRUCTURE
+├── Network
+│   ├── Connectivity
+│   ├── Performance
+│   └── VPN
+├── Storage
+│   ├── Disk Space
+│   ├── Backup/Restore
+│   └── File Shares
+└── Cloud Services
+    ├── IaaS
+    ├── PaaS
+    └── SaaS
+
+SERVICE REQUESTS
+├── User Account
+│   ├── New User
+│   ├── Modify Access
+│   └── Disable User
+├── Equipment
+│   ├── New Equipment
+│   ├── Replacement
+│   └── Upgrade
+└── Information
+    ├── How-To
+    ├── Training
+    └── Documentation
+
+SECTION 6: AUTOMATIC CLASSIFICATION RULES
+-------------------------------------------
+
+RULE 1: Security Keyword Detection
+IF ticket contains: [hack, breach, ransomware, malware, phishing, suspicious, unauthorized, security, virus]
+THEN:
+- Category: Security
+- Team: Security Team
+- Priority: Minimum P2 (escalate to P1 if confirmed)
+- Notify: Security operations center immediately
+
+RULE 2: Production System Impact
+IF ticket contains: [production down, prod error, customer-facing, revenue impact]
+THEN:
+- Priority: P1
+- Urgency: Critical
+- Team: Based on system (application/infrastructure)
+- Notify: On-call engineer + management
+
+RULE 3: Multiple User Impact
+IF ticket contains: [all users, everyone, entire department, company-wide, nobody can]
+THEN:
+- Priority: Minimum P2
+- Urgency: High
+- Check: Potentially escalate to P1 if confirmed widespread
+
+RULE 4: VIP User
+IF ticket from: [executive, C-level, board member, VIP tag]
+THEN:
+- Urgency: Escalate one level
+- Notify: IT management
+- Assign: Senior engineer
+
+RULE 5: Deadline Pressure
+IF ticket contains: [urgent, ASAP, immediately, deadline, emergency, critical]
+THEN:
+- Review: Validate actual urgency with user
+- Adjust: Priority based on business impact, not emotion
+- Document: True business justification
+
+RULE 6: Password Reset
+IF ticket contains: [password reset, forgot password, locked out, cannot login] 
+AND NOT contains: [multiple users, application]
+THEN:
+- Category: Service Request > User Account
+- Priority: P3
+- Team: End User Support
+- Auto-Resolve: If using self-service portal
+
+RULE 7: Access Request
+IF ticket contains: [new user, new hire, onboarding, needs access, add user]
+THEN:
+- Category: Service Request > User Account
+- Priority: P3
+- Team: Identity & Access Management
+- Require: Manager approval
+
+RULE 8: Termination Request
+IF ticket contains: [termination, last day, disable account, offboarding, resignation]
+THEN:
+- Priority: P1 (if today/immediate), P2 (if future dated)
+- Team: Identity & Access Management
+- Category: Service Request > User Account
+- Notify: Security team
+- Action: Disable access by specified date/time
+
+SECTION 7: SLA MATRIX
+-------------------------------------------
+
+| Priority | Urgency    | Response | Resolution | After Hours    |
+|----------|-----------|----------|-----------|---------------|
+| P1       | Critical  | 15 min   | 4 hours   | Page on-call  |
+| P1       | High      | 15 min   | 6 hours   | Page on-call  |
+| P2       | Critical  | 20 min   | 6 hours   | Email on-call |
+| P2       | High      | 30 min   | 8 hours   | Email on-call |
+| P2       | Medium    | 1 hour   | 12 hours  | Next day      |
+| P3       | High      | 1 hour   | 1 day     | Next day      |
+| P3       | Medium    | 2 hours  | 2 days    | Next day      |
+| P3       | Low       | 4 hours  | 3 days    | Next day      |
+| P4       | Any       | 1 day    | 5 days    | Next day      |
+
+SECTION 8: ESCALATION PROCEDURES
+-------------------------------------------
+
+TIER 1: First Level Support
+- Initial ticket triage and classification
+- Basic troubleshooting (password resets, restarts)
+- Known issues with documented solutions
+- Information gathering
+- User communication
+- Escalate after: 30 minutes for P1, 2 hours for P2
+
+TIER 2: Technical Specialists
+- Advanced troubleshooting
+- System configuration changes
+- Root cause analysis
+- Coordination with other teams
+- Escalate after: 2 hours for P1, 4 hours for P2
+
+TIER 3: Subject Matter Experts
+- Complex technical issues
+- Architecture decisions
+- Vendor engagement
+- Deep system knowledge
+- Escalate after: 4 hours for P1
+
+MANAGEMENT ESCALATION:
+- P1 not resolved in 4 hours
+- P2 not resolved in 12 hours
+- Customer escalation or complaint
+- Policy exception needed
+- Resource contention issues
+
+SECTION 9: QUALITY CHECKS
+-------------------------------------------
+
+BEFORE CLOSING TICKET:
+□ Issue completely resolved (not just worked around)
+□ Root cause identified and documented
+□ User confirmed resolution
+□ Knowledge base article created/updated if new issue
+□ Related tickets linked
+□ Time logged accurately
+□ Classification correct (category, priority, team)
+□ All required fields completed
+□ Follow-up scheduled if needed
+
+CUSTOMER SATISFACTION SURVEY:
+- Sent automatically upon ticket closure
+- Tracked metrics: Resolution time, communication, quality
+- Poor ratings trigger manager review
+- Trends analyzed monthly
+
+TICKET CLASSIFICATION ACCURACY:
+- Random sample audited weekly
+- Feedback provided to analysts
+- Retraining if accuracy < 90%
+- AI classification training data
+

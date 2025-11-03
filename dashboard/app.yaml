@@ -1,0 +1,9 @@
+command: 
+  - "streamlit"
+  - "run"
+  - "app_databricks.py"
+  - "--server.enableXsrfProtection=false"
+
+env:
+  - name: 'DATABRICKS_HOST'
+    value: 'adb-984752964297111.11.azuredatabricks.net'

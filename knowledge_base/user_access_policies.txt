@@ -1,0 +1,507 @@
+===========================================
+USER ACCESS MANAGEMENT POLICIES
+Identity, Authentication & Authorization
+===========================================
+
+SECTION 1: ACCOUNT PROVISIONING
+-------------------------------------------
+
+1.1 New User Account Creation
+Priority: P3 (Standard - 1 business day SLA)
+Required Information:
+- Full name (first, last)
+- Employee ID
+- Department and cost center
+- Job title and role
+- Manager name and approval
+- Start date
+- Office location
+- Work email (if not auto-generated)
+- Required system access (specific applications)
+
+Process:
+1. Verify manager approval in ticket
+2. Validate employee information in HR system
+3. Create user account in identity management system
+4. Generate username per naming convention
+5. Assign to appropriate groups based on role
+6. Set temporary password (force change on first login)
+7. Enable multi-factor authentication (MFA)
+8. Send welcome email with login instructions
+9. Grant application access per role-based access control
+10. Document access in access management system
+Average Processing Time: 4 hours
+Escalation: Manager approval missing or role unclear
+
+Standard Username Format:
+- firstname.lastname (if unique)
+- firstname.lastname2 (if duplicate exists)
+- All lowercase
+- Maximum 20 characters
+
+Default Access Granted:
+- Email and calendar
+- Corporate intranet
+- Time and expense system
+- HR self-service portal
+- Document management system
+- Video conferencing
+
+1.2 Contractor/Temporary Access
+Priority: P3 (Standard - 4 hour SLA)
+Additional Requirements:
+- End date (mandatory)
+- Sponsoring manager
+- Non-disclosure agreement (NDA) on file
+- Contractor agreement or purchase order
+- Specific access justification
+- Limited to necessary systems only
+
+Restrictions:
+- No administrative privileges by default
+- Access expires automatically on end date
+- Cannot sponsor other users
+- No access to confidential financial data
+- Enhanced monitoring and logging
+- 90-day maximum access duration (renewable)
+
+1.3 Service Account Creation
+Priority: P3 (Standard - 1 business day SLA)
+Required Information:
+- Application or service name
+- Business owner/sponsor
+- Technical owner
+- Purpose and justification
+- Required permissions (least privilege)
+- Access scope and duration
+- Password rotation policy
+
+Guidelines:
+- Service accounts are for applications, not individuals
+- Shared passwords must be stored in password vault
+- Enable monitoring and auditing
+- No interactive login allowed
+- Regular access review required (quarterly)
+- Naming convention: svc_applicationname_purpose
+
+SECTION 2: ACCESS MODIFICATION
+-------------------------------------------
+
+2.1 Role Change / Transfer
+Priority: P3 (Standard - 4 hour SLA)
+Triggers:
+- Employee promotion or demotion
+- Department transfer
+- Job title change
+- Manager change
+
+Process:
+1. Review current access and permissions
+2. Identify access to remove (old role)
+3. Identify access to add (new role)
+4. Remove unnecessary access first (principle of least privilege)
+5. Add new required access
+6. Update user attributes (department, title, manager)
+7. Notify old and new managers
+8. Conduct access recertification
+Average Processing Time: 2 hours
+
+2.2 Additional Access Request
+Priority: P3 (Standard - 4 hour SLA)
+Required Information:
+- Specific system/application
+- Business justification
+- Manager approval
+- Duration (temporary or permanent)
+- Required permission level (read, write, admin)
+
+Approval Process:
+- Manager approval required (mandatory)
+- Data owner approval (for sensitive systems)
+- Security review (for elevated privileges)
+- Compliance review (for regulated data access)
+
+Access Levels Defined:
+- Read Only: View data, cannot modify
+- Read/Write: View and modify data
+- Power User: Advanced features, bulk operations
+- Administrator: Full control, user management
+- Auditor: Read-only access to all data and logs
+
+2.3 Temporary Elevated Access
+Priority: P2 (High - 2 hour SLA)
+Use Cases:
+- Temporary admin access for specific task
+- Production support emergency access
+- Project-specific elevated permissions
+- Backup coverage for absent employee
+
+Requirements:
+- Detailed justification required
+- Manager and security approval
+- Maximum duration: 7 days
+- Specific task or purpose documented
+- Enhanced logging and monitoring
+- Mandatory access review upon expiration
+- Ticket remains open until access removed
+
+Just-In-Time (JIT) Access:
+- Access granted only when needed
+- Time-limited (hours, not days)
+- Automatically revoked after time limit
+- Approval workflow required
+- Full audit trail maintained
+
+SECTION 3: ACCESS REMOVAL
+-------------------------------------------
+
+3.1 Employee Termination
+Priority: P1 (Critical - Immediate)
+Notification Source: HR system or manager
+Immediate Actions (within 15 minutes):
+1. Disable all user accounts immediately
+2. Revoke VPN and remote access
+3. Disable email access
+4. Terminate active sessions
+5. Disable MFA tokens
+6. Block access badges/physical access
+7. Collect company devices if on-site
+8. Change passwords for shared accounts used by employee
+9. Review recent account activity for anomalies
+10. Notify manager and security team
+
+Extended Actions (within 24 hours):
+- Remove from all distribution lists
+- Remove from shared drives and folders
+- Revoke access to third-party applications
+- Transfer data ownership to manager
+- Archive mailbox and files
+- Delete account after retention period (typically 90 days)
+- Update documentation and contact lists
+
+Friendly Termination Considerations:
+- Email forwarding to manager (30 days)
+- Out-of-office message setup
+- Calendar access for manager
+- Transfer pending approvals
+- Document institutional knowledge
+
+3.2 Employee Resignation (Notice Period)
+Priority: P2 (High - planned approach)
+During Notice Period:
+- Monitor account activity closely
+- Review data download/access patterns
+- Disable ability to print or export large data
+- Enable Data Loss Prevention (DLP) policies
+- Review email and file sharing
+- Block personal cloud storage access
+- Limit access to confidential projects
+
+On Last Day:
+- Follow termination process above
+- Conduct exit interview with IT
+- Collect all equipment and devices
+- Revoke all access at end of business day
+- Ensure knowledge transfer completed
+
+3.3 Extended Leave (Medical, Parental, Sabbatical)
+Priority: P3 (Standard - planned approach)
+Leave Duration < 30 days:
+- No action required
+- Out-of-office message
+- Delegate critical responsibilities
+
+Leave Duration > 30 days:
+- Disable account after 30 days of inactivity
+- Maintain email delivery (forward to manager)
+- Remove from active user counts (licensing)
+- Document expected return date
+- Backup coverage for critical access
+
+Return from Leave:
+- Re-enable account
+- Verify role and access still appropriate
+- Update contact information
+- Password reset required
+- MFA re-enrollment
+- Review security training requirements
+
+3.4 Inactive Account Cleanup
+Priority: P4 (Low - routine maintenance)
+Triggers:
+- No login for 90 days
+- No activity detected for 180 days
+- Automated identity governance scans
+
+Process:
+1. Identify inactive accounts
+2. Notify user and manager
+3. Request confirmation account still needed
+4. Disable account if no response (14 days)
+5. Delete account after 180 days disabled
+6. Archive data per retention policy
+
+Exceptions (do not disable):
+- Service accounts with documented owner
+- Break-glass/emergency accounts (test regularly)
+- System accounts (documented and approved)
+
+SECTION 4: PASSWORD MANAGEMENT
+-------------------------------------------
+
+4.1 Password Reset
+Priority: P3 (Standard - 30 minute SLA)
+Self-Service Reset:
+- Use password reset portal
+- Answer security questions
+- Verify via email or SMS
+- Set new password meeting complexity requirements
+
+Help Desk Reset:
+- Verify identity (employee ID, manager, DOB)
+- Ask security questions
+- Send temporary password to registered email
+- Force password change on next login
+- Re-enable MFA after reset
+
+Account Lockout Reset:
+- Verify reason for lockout
+- Check for brute force attempts
+- Reset password if suspicious activity
+- Document incident if security-related
+
+4.2 Password Policies
+Complexity Requirements:
+- Minimum 12 characters (16 for privileged accounts)
+- Must contain uppercase and lowercase
+- Must contain numbers
+- Must contain special characters
+- Cannot contain username or common words
+- Cannot reuse last 10 passwords
+- No repeated or sequential characters
+
+Expiration and Rotation:
+- Standard accounts: 90 days
+- Privileged accounts: 60 days
+- Service accounts: 180 days (manual rotation)
+- Shared accounts: 30 days
+- Password expires warning: 14 days advance
+
+Password Manager:
+- Corporate password manager approved
+- Store passwords securely
+- Do NOT share passwords via email/chat
+- Use unique passwords for each account
+- Enable password generator for complexity
+
+4.3 Forgotten Username
+Priority: P4 (Low - 1 hour SLA)
+Recovery Process:
+- Verify identity
+- Provide username via registered email
+- Log request in ticket system
+- Suggest username reminder tool
+
+SECTION 5: MULTI-FACTOR AUTHENTICATION (MFA)
+-------------------------------------------
+
+5.1 MFA Enrollment
+Priority: P3 (Standard - mandatory for all users)
+Supported Methods:
+- Mobile authenticator app (preferred)
+- SMS text message (backup)
+- Hardware security key (for privileged accounts)
+- Biometric authentication (if device supported)
+
+Enrollment Process:
+1. Login to MFA enrollment portal
+2. Scan QR code with authenticator app
+3. Enter verification code to confirm
+4. Register backup phone number
+5. Generate and save backup codes
+6. Test MFA login
+
+Required for Access to:
+- Email and calendar
+- VPN and remote access
+- Cloud applications
+- Administrative consoles
+- Sensitive data systems
+- Financial systems
+
+5.2 MFA Device Lost/Replaced
+Priority: P2 (High - 1 hour SLA)
+Process:
+- Verify identity thoroughly
+- Temporarily disable MFA
+- Allow user to re-enroll with new device
+- Invalidate old MFA tokens
+- Test new MFA setup
+- Document device change
+
+Backup Options:
+- Use backup codes (provided during enrollment)
+- Use backup phone number
+- Contact help desk for emergency reset
+
+5.3 MFA Bypass (Emergency)
+Priority: P1 (Critical - immediate for critical staff)
+Approved Scenarios:
+- Device lost/stolen (no backup method available)
+- Traveling internationally (no cell service)
+- Device malfunction
+- Emergency access required
+
+Process:
+- Manager approval required
+- Security team notification
+- Time-limited bypass (maximum 24 hours)
+- Enhanced monitoring enabled
+- Mandatory re-enrollment after bypass
+- Incident documented
+
+SECTION 6: PRIVILEGED ACCESS MANAGEMENT
+-------------------------------------------
+
+6.1 Administrator Access
+Requirements:
+- Separate admin account (not daily use account)
+- Enhanced background check
+- Additional training required
+- Manager and security approval
+- Regular access recertification (quarterly)
+- Just-in-time access where possible
+
+Monitoring:
+- All admin actions logged
+- Real-time alerts for sensitive operations
+- Regular audit reviews
+- Session recording for critical systems
+- Require approval for privilege escalation
+
+6.2 Break-Glass Accounts
+Purpose: Emergency access when normal authentication unavailable
+Characteristics:
+- Shared credential stored in secure vault
+- Requires physical access to retrieve
+- Multiple people required to access (split knowledge)
+- Immediate alert when used
+- Full audit trail
+- Mandatory incident review after use
+- Regular testing (quarterly)
+
+Usage Triggers:
+- Authentication system failure
+- Identity provider outage
+- Disaster recovery scenario
+- Critical security incident
+
+6.3 Third-Party/Vendor Access
+Requirements:
+- Formal vendor agreement required
+- NDA signed
+- Specific access justification
+- Internal sponsor required
+- Limited to necessary systems only
+- Time-limited access
+- Enhanced monitoring
+- Separate vendor accounts (no shared credentials)
+
+Restrictions:
+- No administrative access by default
+- Cannot access customer data without approval
+- Must use VPN or secure access method
+- Activity logged and reviewed
+- Access removed immediately after work completed
+- Regular vendor access review (monthly)
+
+SECTION 7: ACCESS REVIEWS & AUDITS
+-------------------------------------------
+
+7.1 Regular Access Recertification
+Frequency:
+- Standard users: Annually
+- Privileged users: Quarterly
+- Contractors: Every 90 days
+- Service accounts: Quarterly
+- Terminated user cleanup: Monthly
+
+Process:
+1. Generate access report for managers
+2. Managers review direct reports' access
+3. Approve continued access or request removal
+4. Remove unconfirmed access after 14 days
+5. Document certification in access management system
+6. Report exceptions to security team
+
+7.2 Compliance Audits
+Audit Scope:
+- SOX-compliant access controls
+- PCI-DSS access requirements
+- GDPR data access logging
+- HIPAA minimum necessary access
+- Industry-specific regulations
+
+Audit Artifacts:
+- User provisioning and deprovisioning logs
+- Access approval documentation
+- Segregation of duties reviews
+- Privileged access monitoring
+- Authentication logs
+- Failed access attempts
+- Policy compliance reports
+
+7.3 Access Anomaly Detection
+Monitored Activities:
+- Login from unusual locations
+- Access outside normal business hours
+- Multiple failed login attempts
+- Privilege escalation attempts
+- Access to systems outside job function
+- Large data downloads or exports
+- Sharing credentials (multiple simultaneous logins)
+- Disabled security controls
+
+Response Actions:
+- Automated alerts to security team
+- Investigate suspicious activity
+- Contact user and manager
+- Temporarily suspend access if confirmed threat
+- Document findings
+- Update monitoring rules
+
+SECTION 8: SPECIAL SCENARIOS
+-------------------------------------------
+
+8.1 Merger & Acquisition User Integration
+Process:
+- Assess acquired company user access
+- Map roles to existing access model
+- Create migration plan with timeline
+- Coordinate with HR for user data
+- Bulk user provisioning (staged approach)
+- Maintain audit trail
+- Decommission old systems access after migration
+
+8.2 Regulatory or Legal Hold
+Priority: P1 (Critical - immediate preservation)
+Actions:
+- Do NOT disable or delete accounts under hold
+- Preserve all data and logs
+- Restrict access modification
+- Enable enhanced logging
+- Document all actions
+- Coordinate with legal team
+- Maintain chain of custody
+
+8.3 Shared/Generic Accounts
+Policy: Discouraged (use individual accounts when possible)
+If Required:
+- Document business justification
+- List of authorized users maintained
+- Password changed when any user leaves
+- Enhanced logging required
+- Regular usage review
+- Limited to specific use cases
+- Cannot be used for compliance-sensitive activities
+

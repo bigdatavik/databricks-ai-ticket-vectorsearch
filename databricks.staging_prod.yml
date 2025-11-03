@@ -1,0 +1,201 @@
+bundle:
+  name: classify_tickets_system
+
+variables:
+  catalog:
+    description: Unity Catalog name
+  
+  schema:
+    description: Schema name
+    default: support_ai
+  
+  deployment_mode:
+    description: "Deployment mode: full (clean slate) or incremental (update only changes)"
+    default: incremental
+  
+  vector_endpoint:
+    description: "Shared Vector Search endpoint name (NEVER DELETED - shared across projects)"
+    default: one-env-shared-endpoint-2
+
+workspace:
+  host: https://adb-984752964297111.11.azuredatabricks.net
+
+resources:
+  # Databricks jobs for setup and data preparation
+  jobs:
+    setup_infrastructure:
+      name: "[${bundle.target}] Setup Infrastructure"
+      
+      # Job cluster configuration (matches Field Eng Shared UC LTS Cluster)
+      job_clusters:
+        - job_cluster_key: setup_cluster
+          new_cluster:
+            spark_version: 16.4.x-scala2.12  # 16.4 LTS (includes Apache Spark 3.5.2, Scala 2.13)
+            node_type_id: Standard_D4ds_v5   # 16 GB Memory, 4 Cores
+            driver_node_type_id: Standard_D8ds_v5  # 32 GB Memory, 8 Cores
+            autoscale:
+              min_workers: 1
+              max_workers: 20
+            azure_attributes:
+              availability: SPOT_WITH_FALLBACK_AZURE
+              first_on_demand: 1
+              spot_bid_max_price: -1
+            runtime_engine: PHOTON
+            data_security_mode: USER_ISOLATION
+            custom_tags:
+              project: classify_tickets
+              environment: ${bundle.target}
+      
+      tasks:
+        # ═══════════════════════════════════════════════════════
+        # CLEANUP (only runs in FULL mode)
+        # ═══════════════════════════════════════════════════════
+        - task_key: cleanup_full_mode
+          job_cluster_key: setup_cluster
+          notebook_task:
+            notebook_path: ./notebooks/00_cleanup_full_mode.py
+            base_parameters:
+              catalog: ${var.catalog}
+              mode: ${var.deployment_mode}
+              vector_endpoint: ${var.vector_endpoint}
+              app_name: classify-tickets-dashboard-${bundle.target}
+            source: WORKSPACE
+        
+        # ═══════════════════════════════════════════════════════
+        # SETUP INFRASTRUCTURE
+        # ═══════════════════════════════════════════════════════
+        - task_key: create_catalog_schema
+          depends_on:
+            - task_key: cleanup_full_mode
+          job_cluster_key: setup_cluster
+          notebook_task:
+            notebook_path: ./notebooks/00_setup_catalog_schema.py
+            base_parameters:
+              catalog: ${var.catalog}
+            source: WORKSPACE
+        
+        - task_key: deploy_ai_classify
+          depends_on:
+            - task_key: create_catalog_schema
+          job_cluster_key: setup_cluster
+          notebook_task:
+            notebook_path: ./notebooks/01_deploy_uc_function_ai_classify.py
+            base_parameters:
+              catalog: ${var.catalog}
+            source: WORKSPACE
+        
+        - task_key: deploy_ai_extract
+          depends_on:
+            - task_key: deploy_ai_classify
+          job_cluster_key: setup_cluster
+          notebook_task:
+            notebook_path: ./notebooks/02_deploy_uc_function_ai_extract.py
+            base_parameters:
+              catalog: ${var.catalog}
+            source: WORKSPACE
+        
+        - task_key: deploy_ai_gen
+          depends_on:
+            - task_key: deploy_ai_extract
+          job_cluster_key: setup_cluster
+          notebook_task:
+            notebook_path: ./notebooks/03_deploy_uc_function_ai_gen.py
+            base_parameters:
+              catalog: ${var.catalog}
+            source: WORKSPACE
+        
+        - task_key: deploy_quick_classify
+          depends_on:
+            - task_key: deploy_ai_gen
+          job_cluster_key: setup_cluster
+          notebook_task:
+            notebook_path: ./notebooks/04_deploy_uc_function_quick_classify.py
+            base_parameters:
+              catalog: ${var.catalog}
+            source: WORKSPACE
+        
+        - task_key: upload_knowledge_docs
+          depends_on:
+            - task_key: deploy_quick_classify
+          job_cluster_key: setup_cluster
+          notebook_task:
+            notebook_path: ./notebooks/10_upload_knowledge_docs.py
+            base_parameters:
+              catalog: ${var.catalog}
+            source: WORKSPACE
+        
+        - task_key: reload_kb_with_chunking
+          depends_on:
+            - task_key: upload_knowledge_docs
+          job_cluster_key: setup_cluster
+          notebook_task:
+            notebook_path: ./notebooks/13_reload_kb_with_proper_chunking.py
+            base_parameters:
+              catalog: ${var.catalog}
+            source: WORKSPACE
+        
+        - task_key: prepare_sample_tickets
+          depends_on:
+            - task_key: reload_kb_with_chunking
+          job_cluster_key: setup_cluster
+          notebook_task:
+            notebook_path: ./notebooks/06_prepare_sample_tickets.py
+            base_parameters:
+              catalog: ${var.catalog}
+            source: WORKSPACE
+        
+        - task_key: create_vector_search_index
+          depends_on:
+            - task_key: prepare_sample_tickets
+          job_cluster_key: setup_cluster
+          notebook_task:
+            notebook_path: ./notebooks/14_recreate_vector_search_index.py
+            base_parameters:
+              catalog: ${var.catalog}
+              mode: ${var.deployment_mode}
+              vector_endpoint: ${var.vector_endpoint}
+            source: WORKSPACE
+        
+        - task_key: grant_app_permissions
+          depends_on:
+            - task_key: create_vector_search_index
+          job_cluster_key: setup_cluster
+          notebook_task:
+            notebook_path: ./notebooks/08_grant_app_permissions.py
+            base_parameters:
+              app_name: classify-tickets-dashboard-${bundle.target}
+              catalog: ${var.catalog}
+            source: WORKSPACE
+
+  # Streamlit dashboard deployment
+  apps:
+    ticket_classification_dashboard:
+      name: classify-tickets-dashboard-${bundle.target}
+      description: "AI-Powered Support Ticket Classification Dashboard (${bundle.target})"
+      source_code_path: ./dashboard
+
+targets:
+  staging:
+    default: true
+    mode: development
+    variables:
+      catalog: classify_tickets_new_staging
+      deployment_mode: incremental
+      vector_endpoint: one-env-shared-endpoint-2
+    workspace:
+      host: https://adb-984752964297111.11.azuredatabricks.net
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+  
+  prod:
+    mode: production
+    variables:
+      catalog: classify_tickets_new_prod
+      deployment_mode: incremental
+      vector_endpoint: one-env-shared-endpoint-2
+    workspace:
+      host: https://adb-984752964297111.11.azuredatabricks.net
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    permissions:
+      - user_name: ${workspace.current_user.userName}
+        level: CAN_MANAGE
+
