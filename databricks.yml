@@ -12,7 +12,7 @@ variables:
   
   deployment_mode:
     description: "Deployment mode: full (clean slate) or incremental (update only changes)"
-    default: full
+    default: incremental
   
   vector_endpoint:
     description: "Shared Vector Search endpoint name (NEVER DELETED - shared across projects)"
@@ -116,6 +116,7 @@ resources:
             notebook_path: ./notebooks/13_reload_kb_with_proper_chunking.py
             base_parameters:
               catalog: ${var.catalog}
+              mode: ${var.deployment_mode}
             source: WORKSPACE
         
         - task_key: prepare_sample_tickets

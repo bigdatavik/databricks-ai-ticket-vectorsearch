@@ -7,3 +7,15 @@ command:
 env:
   - name: 'DATABRICKS_HOST'
     value: 'adb-984752964297111.11.azuredatabricks.net'
+  
+  # Unity Catalog Configuration
+  # Note: Bundle variables ${var.catalog} don't work in app.yaml
+  # Hardcoded for now - would need different app.yaml per environment
+  - name: 'CATALOG_NAME'
+    value: 'classify_tickets_new_dev'
+  - name: 'SCHEMA_NAME'
+    value: 'support_ai'
+  
+  # SQL Warehouse Configuration
+  - name: 'DATABRICKS_WAREHOUSE_ID'
+    value: '148ccb90800933a1'

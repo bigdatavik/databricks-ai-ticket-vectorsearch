@@ -1,0 +1,121 @@
+STORAGE AND BACKUP PROCEDURES
+==============================
+
+Comprehensive guide for storage management and backup operations.
+
+STORAGE MANAGEMENT
+------------------
+
+Disk Space Issues (Priority P2):
+- Check disk usage with df -h (Linux) or Disk Utility (Mac)
+- Identify large files and directories
+- Review log file sizes and rotation
+- Clean up temporary files
+- Archive old data to external storage
+- Delete unnecessary applications
+- Clear browser caches
+- Review download folders
+- Escalate if >90% capacity
+
+Storage Quota Exceeded (Priority P2):
+- Review storage usage breakdown
+- Delete old/unused files
+- Move files to external storage
+- Compress large files
+- Archive old data per retention policy
+- Review cloud storage sync settings
+- Clear cloud trash/deleted items
+- Request quota increase if needed
+
+FILE BACKUP PROCEDURES
+----------------------
+
+Backup Not Running (Priority P2):
+- Verify backup software is installed
+- Check backup schedule configuration
+- Review backup job logs
+- Verify backup destination is accessible
+- Check network connectivity for cloud backups
+- Verify backup credentials are valid
+- Test backup manually
+- Restart backup service if needed
+
+Backup Verification (Priority P3):
+- Perform test restore from backup
+- Verify backup file integrity
+- Check backup completion reports
+- Review backup retention policies
+- Test restore on different machine
+- Verify critical files are backed up
+- Document restore procedures
+- Schedule regular backup tests
+
+CLOUD STORAGE SYNC
+------------------
+
+Files Not Syncing (Priority P2):
+- Check internet connectivity
+- Verify cloud storage service status
+- Review sync folder configuration
+- Check sync application status
+- Verify account credentials
+- Review storage quota limits
+- Check for file conflicts
+- Restart sync application
+
+Sync Conflicts (Priority P2):
+- Review conflict resolution options
+- Check file modification timestamps
+- Resolve conflicts manually
+- Choose which version to keep
+- Review sync logs for details
+- Prevent future conflicts with better coordination
+- Set up conflict notification rules
+- Document conflict resolution process
+
+DATA RECOVERY
+-------------
+
+Deleted File Recovery (Priority P2):
+- Check cloud storage trash/recycle bin
+- Review backup files for recovery
+- Check Time Machine (Mac) or File History (Windows)
+- Use file recovery software if needed
+- Check version history if available
+- Review audit logs for deletion time
+- Contact IT support for server backups
+- Document recovery procedures
+
+Corrupted File Recovery (Priority P2):
+- Check for file versions/backups
+- Use file repair tools if available
+- Restore from backup if corrupted
+- Check cloud storage version history
+- Review file recovery logs
+- Attempt recovery from different backup
+- Verify recovered file integrity
+- Document recovery steps
+
+BACKUP BEST PRACTICES
+---------------------
+
+Backup Strategy (Priority P3):
+- Implement 3-2-1 backup rule (3 copies, 2 media types, 1 offsite)
+- Schedule regular automated backups
+- Test restore procedures regularly
+- Encrypt sensitive backup data
+- Store backups in multiple locations
+- Review and update backup policies
+- Document backup procedures
+- Train team on backup importance
+
+Disaster Recovery Planning (Priority P2):
+- Document disaster recovery procedures
+- Identify critical systems and data
+- Establish recovery time objectives (RTO)
+- Establish recovery point objectives (RPO)
+- Test disaster recovery procedures
+- Update contact lists and escalation paths
+- Review and update plan quarterly
+- Coordinate with IT and management
+

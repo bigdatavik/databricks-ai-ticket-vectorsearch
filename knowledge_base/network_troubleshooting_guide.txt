@@ -1,0 +1,89 @@
+NETWORK TROUBLESHOOTING GUIDE
+==============================
+
+Complete guide for diagnosing and resolving network connectivity issues.
+
+VPN CONNECTION PROBLEMS
+-----------------------
+
+Cannot Connect to VPN (Priority P2):
+- Verify VPN client is installed and updated
+- Check network connectivity (ping gateway)
+- Verify VPN server is online
+- Check firewall rules
+- Review VPN credentials
+- Test with different network
+- Check DNS resolution
+- Escalate to Network team if unresolved in 15 minutes
+
+VPN Keeps Disconnecting (Priority P2):
+- Check connection timeout settings
+- Review network stability
+- Verify VPN server capacity
+- Check for conflicting network adapters
+- Update VPN client software
+- Review connection logs
+- Test with different VPN server
+- Escalate if affecting multiple users
+
+DNS RESOLUTION ISSUES
+---------------------
+
+DNS Not Resolving (Priority P2):
+- Check DNS server connectivity
+- Verify DNS server addresses
+- Flush DNS cache
+- Test with different DNS servers
+- Check firewall rules
+- Review DNS logs
+- Verify domain configuration
+- Escalate to Network team
+
+Slow DNS Resolution (Priority P3):
+- Check DNS server performance
+- Review DNS cache settings
+- Verify DNS server load
+- Consider DNS server optimization
+- Test with different DNS servers
+- Monitor resolution times
+
+NETWORK LATENCY ISSUES
+----------------------
+
+High Latency (Priority P2):
+- Check network path (traceroute)
+- Identify bottlenecks
+- Review bandwidth utilization
+- Check for packet loss
+- Verify network equipment status
+- Consider network optimization
+- Escalate to Network team
+
+Packet Loss (Priority P1):
+- Check network equipment health
+- Verify cable connections
+- Review switch/router status
+- Check for network congestion
+- Test with different paths
+- Escalate immediately if severe
+
+FIREWALL CONFIGURATION
+----------------------
+
+Blocked Connections (Priority P2):
+- Review firewall rules
+- Verify source/destination IPs
+- Check port configurations
+- Test firewall rules
+- Update rules if needed
+- Document changes
+- Escalate to Network team
+
+Firewall Performance Issues (Priority P2):
+- Check firewall resource usage
+- Review rule complexity
+- Optimize rule order
+- Consider rule consolidation
+- Monitor performance metrics
+- Escalate if causing bottlenecks
+

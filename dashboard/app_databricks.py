@@ -9,6 +9,7 @@ For local development, use app_simple.py instead.
 import streamlit as st
 import json
 import time
+import os
 from databricks.sdk import WorkspaceClient
 
 # Page configuration
@@ -18,9 +19,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# Configuration
-CATALOG = "classify_tickets_new_dev"
-SCHEMA = "support_ai"
+# Configuration (read from environment variables with defaults for backward compatibility)
+CATALOG = os.getenv("CATALOG_NAME", "classify_tickets_new_dev")
+SCHEMA = os.getenv("SCHEMA_NAME", "support_ai")
+WAREHOUSE_ID = os.getenv("DATABRICKS_WAREHOUSE_ID", "148ccb90800933a1")
 INDEX_NAME = f"{CATALOG}.{SCHEMA}.knowledge_base_index"
 
 # Initialize Databricks client (uses Databricks Apps authentication)
@@ -123,16 +125,13 @@ def call_uc_function(function_name, *args, timeout=50):
         args_str = ', '.join(escaped_args)
         query = f"SELECT {CATALOG}.{SCHEMA}.{function_name}({args_str}) as result"
         
-        # Use specific warehouse from MY_ENVIRONMENT.md
-        warehouse_id = "148ccb90800933a1"
-        
-        st.info(f"🔍 Executing: {function_name}(...) on warehouse {warehouse_id}")
+        st.info(f"🔍 Executing: {function_name}(...) on warehouse {WAREHOUSE_ID}")
         
         # Use Statement Execution API (more reliable for Databricks Apps)
         # Note: wait_timeout must be between 5s and 50s (API limit)
         try:
             result = w.statement_execution.execute_statement(
-                warehouse_id=warehouse_id,
+                warehouse_id=WAREHOUSE_ID,
                 statement=query,
                 wait_timeout="50s"  # Maximum allowed by API
             )
@@ -248,7 +247,7 @@ st.markdown("Real-time ticket classification using Unity Catalog AI Functions an
 # Sidebar
 with st.sidebar:
     st.header("⚙️ Configuration")
-    st.info(f"**Catalog:** {CATALOG}\n\n**Schema:** {SCHEMA}\n\n**Environment:** Databricks Apps")
+    st.info(f"**Catalog:** {CATALOG}\n\n**Schema:** {SCHEMA}\n\n**Warehouse:** {WAREHOUSE_ID}\n\n**Environment:** Databricks Apps")
     
     st.markdown("---")
     

@@ -296,11 +296,55 @@ elif MODE.lower() == "incremental":
         # Trigger incremental sync
         print()
         print(f"   ⏳ Triggering incremental sync...")
+        
+        # CRITICAL: Wait a moment after merge operations to ensure Change Data Feed is ready
+        # Vector Search sync reads from Change Data Feed, which needs time to process
+        print(f"   ⏳ Waiting 5 seconds for Change Data Feed to process recent commits...")
+        time.sleep(5)
+        
+        # Diagnostic: Check how many records are in source table vs index
+        try:
+            from pyspark.sql import SparkSession
+            spark = SparkSession.builder.getOrCreate()
+            source_count = spark.sql(f"SELECT COUNT(*) as count FROM {FULL_TABLE_NAME}").collect()[0]['count']
+            
+            # Refresh index description to get latest stats
+            desc = existing_index.describe()
+            stats = desc.get('index_stats', {})
+            index_count = stats.get('num_vectors', 0) if stats else 0
+            
+            print(f"\n   📊 Sync Diagnostic:")
+            print(f"      Source table records: {source_count}")
+            print(f"      Indexed records: {index_count}")
+            if source_count > index_count:
+                print(f"      ⚠️  Missing {source_count - index_count} records in index")
+                print(f"      Sync should pick up these records")
+            else:
+                print(f"      ✅ Index appears to be in sync")
+        except Exception as diag_error:
+            print(f"      ⚠️  Could not check counts: {diag_error}")
+        
         existing_index.sync()
         
-        print(f"   ✅ Incremental sync complete!")
+        print(f"   ✅ Incremental sync triggered!")
         print(f"      Only new/changed records were embedded")
         print(f"      Existing embeddings were preserved")
+        
+        # Verify sync is processing
+        print(f"\n   📊 Checking sync status...")
+        time.sleep(3)  # Give sync a moment to start
+        
+        try:
+            desc = existing_index.describe()
+            sync_status = desc.get('sync_status', {})
+            if sync_status:
+                print(f"   Sync status: {sync_status.get('status', 'Unknown')}")
+                print(f"   Last sync time: {sync_status.get('last_sync_time', 'N/A')}")
+        except:
+            pass
+        
+        print(f"\n   💡 Note: Sync may take 1-2 minutes to complete")
+        print(f"      Check Vector Search UI to see when sync finishes")
         
     except Exception as e:
         error_msg = str(e)

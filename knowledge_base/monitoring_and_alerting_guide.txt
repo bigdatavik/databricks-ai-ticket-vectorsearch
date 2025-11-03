@@ -1,0 +1,109 @@
+MONITORING AND ALERTING GUIDE
+==============================
+
+Complete guide for setting up and troubleshooting monitoring systems and alerts.
+
+SYSTEM MONITORING SETUP
+------------------------
+
+New Monitoring Requirements (Priority P3):
+- Identify critical metrics to monitor
+- Select appropriate monitoring tool (Datadog, New Relic, CloudWatch)
+- Configure alert thresholds
+- Set up notification channels (email, Slack, PagerDuty)
+- Test alert delivery
+- Document alert runbooks
+- Schedule review meetings
+
+Monitoring Dashboard Configuration (Priority P3):
+- Create custom dashboards for key services
+- Configure widget types (graphs, tables, gauges)
+- Set up time ranges and refresh intervals
+- Add annotations for deployments
+- Share dashboards with team
+- Set up dashboard permissions
+
+METRIC COLLECTION ISSUES
+------------------------
+
+Metrics Not Appearing (Priority P2):
+- Verify agent/service is running
+- Check network connectivity to monitoring service
+- Review agent configuration files
+- Verify API keys and authentication
+- Check firewall rules for monitoring ports
+- Review agent logs for errors
+- Test metric push manually
+- Escalate to DevOps team if unresolved
+
+High Metric Cardinality (Priority P2):
+- Identify high-cardinality tags
+- Review tag usage and necessity
+- Optimize tag values (avoid timestamps, IDs)
+- Consider metric aggregation
+- Check for tag explosion
+- Optimize metric naming conventions
+- Review with monitoring team
+
+ALERT CONFIGURATION
+-------------------
+
+Alert Not Firing (Priority P2):
+- Verify alert threshold configuration
+- Check metric name and tags match exactly
+- Review alert evaluation window
+- Test alert condition manually
+- Verify alert is enabled (not muted)
+- Check notification channel configuration
+- Review alert history for past triggers
+
+Alert Noise / False Positives (Priority P3):
+- Review alert thresholds (may be too sensitive)
+- Adjust evaluation window
+- Add alert conditions or filters
+- Implement alert fatigue reduction
+- Review alert patterns and trends
+- Consider alert grouping/batching
+- Schedule alert review meeting
+
+ALERT RESPONSE
+--------------
+
+On-Call Rotation Setup (Priority P3):
+- Define on-call schedule
+- Configure escalation policies
+- Set up PagerDuty or similar tool
+- Test on-call notifications
+- Document on-call procedures
+- Train team on incident response
+- Review and update rotations regularly
+
+Alert Escalation Issues (Priority P2):
+- Verify escalation chain is configured
+- Check notification channel status
+- Review escalation timing settings
+- Test escalation path manually
+- Verify on-call person availability
+- Check for alert fatigue causing missed escalations
+
+MONITORING PERFORMANCE
+---------------------
+
+Monitoring System Slow (Priority P2):
+- Check monitoring service status page
+- Review query performance
+- Optimize dashboard queries
+- Reduce time range for heavy queries
+- Check for rate limiting
+- Review metric retention policies
+- Consider upgrading monitoring plan
+
+High Monitoring Costs (Priority P3):
+- Review metric retention policies
+- Identify unused metrics
+- Optimize metric cardinality
+- Review custom metrics usage
+- Check for duplicate metrics
+- Consider metric sampling
+- Schedule cost review meeting
+
