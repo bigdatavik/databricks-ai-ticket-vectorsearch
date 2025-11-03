@@ -130,8 +130,8 @@ This will:
 │   ├── 04_deploy_uc_function_quick_classify.py
 │   ├── 06_prepare_sample_tickets.py
 │   ├── 08_grant_app_permissions.py
-│   ├── 10_upload_knowledge_docs.py
-│   ├── 13_reload_kb_with_proper_chunking.py
+│   ├── 10_upload_knowledge_docs.py  # Uploads KB files to volume
+│   ├── 13_reload_kb_with_proper_chunking.py  # Processes KB with chunking
 │   └── 14_recreate_vector_search_index.py
 │
 ├── dashboard/
@@ -140,12 +140,24 @@ This will:
 │   ├── app.yaml                     # Databricks App config
 │   └── requirements.txt
 │
-└── knowledge_base/
-    ├── IT_infrastructure_runbook.txt
-    ├── application_support_guide.txt
-    ├── security_incident_playbook.txt
-    ├── user_access_policies.txt
-    └── ticket_classification_rules.txt
+├── knowledge_base/
+│   ├── IT_infrastructure_runbook.txt
+│   ├── application_support_guide.txt
+│   ├── security_incident_playbook.txt
+│   ├── user_access_policies.txt
+│   ├── ticket_classification_rules.txt
+│   ├── cloud_resources_guide.txt
+│   ├── email_system_troubleshooting.txt
+│   ├── database_admin_guide.txt
+│   ├── network_troubleshooting_guide.txt
+│   ├── monitoring_and_alerting_guide.txt
+│   ├── slack_collaboration_guide.txt
+│   └── storage_backup_guide.txt
+│
+└── tests/
+    ├── test_vector_search.py        # Local Vector Search testing
+    ├── test_vector_search_index.py  # Databricks notebook for testing
+    └── rebuild_vector_index.py      # Utility for full index rebuild
 ```
 
 ## 🎯 Deployment Workflow
@@ -262,13 +274,25 @@ STRUCT<
 
 **Returns**: Complete classification with all metadata
 
+### Knowledge Base
+
+The system includes a comprehensive knowledge base with 12 documents covering:
+- Infrastructure troubleshooting
+- Application support
+- Security incident response
+- Access management policies
+- Cloud resources (AWS, Azure)
+- Database administration
+- Email systems
+- Network troubleshooting
+- Monitoring and alerting
+- Collaboration tools (Slack)
+- Storage and backup procedures
+- Ticket classification rules
+
 ## 🎨 Dashboard Features
 
 ### Real-Time Classification
-- Submit tickets via text input
-- 6-phase classification with timing
-- Cost breakdown per phase
-- Confidence scores
 
 ### Vector Search Display
 - Top 3 relevant knowledge base documents
@@ -361,9 +385,10 @@ rm -rf .databricks/bundle/*
 
 - **[DEPLOYMENT_QUICK_START.md](DEPLOYMENT_QUICK_START.md)** - Detailed deployment guide
 - **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - One-page reference
-- **[MY_ENVIRONMENT.md](MY_ENVIRONMENT.md)** - Standard patterns
-- **[MY_ENVIRONMENT_AI_TICKET_LESSONS.md](MY_ENVIRONMENT_AI_TICKET_LESSONS.md)** - Lessons learned
-- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Technical deep dive
+- **[tests/README.md](tests/README.md)** - Test utilities documentation
+- **[MY_ENVIRONMENT.md](MY_ENVIRONMENT.md)** - Standard patterns (reference)
+- **[MY_ENVIRONMENT_AI_TICKET_LESSONS.md](MY_ENVIRONMENT_AI_TICKET_LESSONS.md)** - Lessons learned (reference)
+- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Technical deep dive (reference)
 
 ## 🤝 Contributing
 

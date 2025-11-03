@@ -28,9 +28,14 @@
 - Incremental deployment  
 - Catalog: `classify_tickets_new_prod`
 
----
+## 📁 Project Structure
 
-## 🔄 Config Management
+- `notebooks/` - Deployment notebooks
+- `dashboard/` - Streamlit app code
+- `knowledge_base/` - Knowledge base documents (auto-discovered)
+- `tests/` - Test utilities (not deployed)
+- `databricks.yml` - Dev config
+- `databricks.staging_prod.yml` - Staging/prod config
 
 ### Check Current Config
 ```bash

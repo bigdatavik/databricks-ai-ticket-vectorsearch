@@ -143,12 +143,17 @@ head -20 databricks.yml
 ### Config Files
 - `databricks.yml` - Active config (changes based on swap)
 - `databricks.staging_prod.yml` - Staging/prod backup
-- `databricks.dev.backup.yml` - Dev backup (created when switching)
-- `databricks.yml.old` - Original multi-target config (backup)
+- `databricks.dev.backup.yml` - Dev backup (created when switching automatically)
 
 ### Scripts
 - `swap_config.sh` - Config switcher
 - `deploy.sh` - Deployment script
+
+### Test Files
+- `tests/` - Directory containing test utilities (not part of deployment)
+  - `test_vector_search.py` - Local testing script
+  - `test_vector_search_index.py` - Databricks notebook for testing
+  - `rebuild_vector_index.py` - Utility for full index rebuild
 
 ---
 
