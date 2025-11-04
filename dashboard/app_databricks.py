@@ -172,6 +172,18 @@ class GenieConversationTool:
         # Try to get attachments
         attachments = response.get('attachments', [])
         print(f"[Genie] Found {len(attachments)} attachments")
+        print(f"[Genie] Attachments type: {type(attachments)}")
+        
+        # Debug: Check if attachments is actually populated
+        if attachments is None:
+            print(f"[Genie] WARNING: attachments is None!")
+            attachments = []
+        elif not attachments:
+            print(f"[Genie] WARNING: attachments is empty!")
+            print(f"[Genie] Full response keys: {list(response.keys())}")
+            # Check if there's query_result field directly in response
+            if 'query_result' in response:
+                print(f"[Genie] Found query_result directly in response!")
         
         # Initialize result
         result = {
@@ -179,7 +191,8 @@ class GenieConversationTool:
             "query": None,
             "data": None,
             "conversation_id": conversation_id,
-            "message_id": message_id
+            "message_id": message_id,
+            "raw_response": response  # Keep full response for debugging
         }
         
         # If we have attachments, extract additional details AND FETCH ACTUAL DATA
@@ -282,6 +295,42 @@ class GenieConversationTool:
                     print(f"[Genie] Error calling query-result endpoint: {str(e)}")
                     import traceback
                     print(f"[Genie] Traceback: {traceback.format_exc()}")
+        
+        # FALLBACK: If we have the SQL query but no data, execute it ourselves
+        if result.get('query') and not result.get('data'):
+            print(f"[Genie] FALLBACK: No data from Genie API, executing SQL query directly...")
+            try:
+                from databricks.sdk.service.sql import StatementState
+                
+                execute_response = self.w.statement_execution.execute_statement(
+                    warehouse_id=os.environ.get('WAREHOUSE_ID'),
+                    statement=result['query'],
+                    wait_timeout='30s'
+                )
+                
+                print(f"[Genie] Fallback execution status: {execute_response.status.state}")
+                
+                if execute_response.status.state == StatementState.SUCCEEDED:
+                    columns = execute_response.manifest.schema.columns if execute_response.manifest and execute_response.manifest.schema else []
+                    column_names = [col.name for col in columns]
+                    print(f"[Genie] Fallback found columns: {column_names}")
+                    
+                    if execute_response.result and execute_response.result.data_array:
+                        data_array = execute_response.result.data_array
+                        print(f"[Genie] Fallback found {len(data_array)} data rows")
+                        
+                        result['data'] = []
+                        for row in data_array:
+                            row_dict = dict(zip(column_names, row))
+                            result['data'].append(row_dict)
+                        print(f"[Genie] Fallback successfully converted {len(result['data'])} rows")
+                else:
+                    error_msg = execute_response.status.error.message if execute_response.status.error else "Unknown error"
+                    print(f"[Genie] Fallback execution failed: {error_msg}")
+            except Exception as e:
+                print(f"[Genie] Fallback execution error: {str(e)}")
+                import traceback
+                print(f"[Genie] Traceback: {traceback.format_exc()}")
         
         print(f"[Genie] Final result text length: {len(result.get('text') or '')}")
         print(f"[Genie] Data rows extracted: {len(result.get('data') or [])}")
