@@ -303,7 +303,7 @@ class GenieConversationTool:
                 from databricks.sdk.service.sql import StatementState
                 
                 execute_response = self.w.statement_execution.execute_statement(
-                    warehouse_id=os.environ.get('WAREHOUSE_ID'),
+                    warehouse_id=os.getenv("DATABRICKS_WAREHOUSE_ID", "148ccb90800933a1"),
                     statement=result['query'],
                     wait_timeout='30s'
                 )
