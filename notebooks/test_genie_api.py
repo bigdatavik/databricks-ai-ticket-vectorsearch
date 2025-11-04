@@ -14,7 +14,7 @@ w = WorkspaceClient()
 
 # Configuration
 GENIE_SPACE_ID = "01f0b91aa91c1b0c8cce6529ea09f0a8"
-WAREHOUSE_ID = "7e4625b2abfc48c8"  # Your SQL warehouse
+WAREHOUSE_ID = "148ccb90800933a1"  # Correct SQL warehouse
 
 print(f"Genie Space ID: {GENIE_SPACE_ID}")
 print(f"Warehouse ID: {WAREHOUSE_ID}")
