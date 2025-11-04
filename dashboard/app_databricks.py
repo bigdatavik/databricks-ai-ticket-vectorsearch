@@ -229,7 +229,7 @@ def query_vector_search(query_text, num_results=3):
         
         return []
 
-def call_uc_function(function_name, *args, timeout=50):
+def call_uc_function(function_name, *args, timeout=50, show_debug=True):
     """Call a Unity Catalog function using Statement Execution API (more reliable for Databricks Apps)"""
     try:
         # Escape single quotes in string arguments
@@ -263,9 +263,10 @@ def call_uc_function(function_name, *args, timeout=50):
                     data = result.result.data_array[0][0]
                     
                     # Debug: Show what we received
-                    with st.expander(f"🔍 Debug: {function_name} raw response"):
-                        st.write("Type:", type(data))
-                        st.write("Data:", data)
+                    if show_debug:
+                        with st.expander(f"🔍 Debug: {function_name} raw response"):
+                            st.write("Type:", type(data))
+                            st.write("Data:", data)
                     
                     # Handle different response types
                     if isinstance(data, str):
@@ -290,11 +291,12 @@ def call_uc_function(function_name, *args, timeout=50):
                         # Need to map to field names based on function
                         if function_name == "ai_gen":
                             # ai_gen returns: summary, recommendations, resolution_steps, estimated_resolution_time
-                            st.info(f"🔍 ai_gen returned array with {len(data)} elements")
-                            with st.expander("🔍 Debug: Raw ai_gen response"):
-                                st.write("Type:", type(data))
-                                st.write("Length:", len(data))
-                                st.write("Data:", data)
+                            if show_debug:
+                                st.info(f"🔍 ai_gen returned array with {len(data)} elements")
+                                with st.expander("🔍 Debug: Raw ai_gen response"):
+                                    st.write("Type:", type(data))
+                                    st.write("Length:", len(data))
+                                    st.write("Data:", data)
                             
                             if len(data) >= 4:
                                 result = {
@@ -303,13 +305,15 @@ def call_uc_function(function_name, *args, timeout=50):
                                     'resolution_steps': data[2] if data[2] else [],
                                     'estimated_resolution_time': data[3]
                                 }
-                                st.success("✅ Parsed ai_gen response successfully")
+                                if show_debug:
+                                    st.success("✅ Parsed ai_gen response successfully")
                                 return result
                             else:
                                 st.error(f"ai_gen returned unexpected array length: {len(data)}")
-                                with st.expander("🔍 Debug: Array contents"):
-                                    for i, item in enumerate(data):
-                                        st.write(f"Index {i}: {item}")
+                                if show_debug:
+                                    with st.expander("🔍 Debug: Array contents"):
+                                        for i, item in enumerate(data):
+                                            st.write(f"Index {i}: {item}")
                                 return None
                         else:
                             # For other functions, return as-is
@@ -329,16 +333,18 @@ def call_uc_function(function_name, *args, timeout=50):
         
         except Exception as api_error:
             st.error(f"Statement Execution API error: {api_error}")
-            import traceback
-            with st.expander("🔍 Debug Details"):
-                st.code(traceback.format_exc())
+            if show_debug:
+                import traceback
+                with st.expander("🔍 Debug Details"):
+                    st.code(traceback.format_exc())
             return None
     
     except Exception as e:
         st.error(f"Error calling UC function {function_name}: {e}")
-        import traceback
-        with st.expander("🔍 Debug Details"):
-            st.code(traceback.format_exc())
+        if show_debug:
+            import traceback
+            with st.expander("🔍 Debug Details"):
+                st.code(traceback.format_exc())
         return None
 
 # Sample tickets for testing
@@ -736,7 +742,7 @@ with tab4:
                 # Phase 1: Classification
                 with st.status("🎯 Agent 1: Classifying ticket...", expanded=True) as status_classify:
                     start = time.time()
-                    classify_result = call_uc_function("ai_classify", ticket_text_agent)
+                    classify_result = call_uc_function("ai_classify", ticket_text_agent, show_debug=False)
                     elapsed = (time.time() - start) * 1000
                     
                     if classify_result:
@@ -751,7 +757,7 @@ with tab4:
                 # Phase 2: Metadata Extraction
                 with st.status("📊 Agent 2: Extracting metadata...", expanded=True) as status_extract:
                     start = time.time()
-                    extract_result = call_uc_function("ai_extract", ticket_text_agent)
+                    extract_result = call_uc_function("ai_extract", ticket_text_agent, show_debug=False)
                     elapsed = (time.time() - start) * 1000
                     
                     if extract_result:
