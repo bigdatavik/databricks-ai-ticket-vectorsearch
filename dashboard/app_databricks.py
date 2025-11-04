@@ -245,7 +245,8 @@ def call_uc_function(function_name, *args, timeout=50, show_debug=True):
         args_str = ', '.join(escaped_args)
         query = f"SELECT {CATALOG}.{SCHEMA}.{function_name}({args_str}) as result"
         
-        st.info(f"🔍 Executing: {function_name}(...) on warehouse {WAREHOUSE_ID}")
+        if show_debug:
+            st.info(f"🔍 Executing: {function_name}(...) on warehouse {WAREHOUSE_ID}")
         
         # Use Statement Execution API (more reliable for Databricks Apps)
         # Note: wait_timeout must be between 5s and 50s (API limit)
@@ -274,16 +275,19 @@ def call_uc_function(function_name, *args, timeout=50, show_debug=True):
                         import json
                         try:
                             parsed = json.loads(data)
-                            st.success(f"✅ Parsed {function_name} as JSON")
+                            if show_debug:
+                                st.success(f"✅ Parsed {function_name} as JSON")
                             return parsed
                         except:
                             # Not JSON, return as-is
-                            st.info(f"ℹ️ {function_name} returned string (not JSON)")
+                            if show_debug:
+                                st.info(f"ℹ️ {function_name} returned string (not JSON)")
                             return data
                     
                     elif isinstance(data, dict):
                         # Already a dict - return as-is
-                        st.success(f"✅ {function_name} returned dict")
+                        if show_debug:
+                            st.success(f"✅ {function_name} returned dict")
                         return data
                     
                     elif isinstance(data, (list, tuple)):
@@ -323,25 +327,27 @@ def call_uc_function(function_name, *args, timeout=50, show_debug=True):
                         # Unknown type - return as-is
                         return data
                 else:
-                    st.warning("Function returned no data")
+                    if show_debug:
+                        st.warning("Function returned no data")
                     return None
             else:
-                st.error(f"Query failed with state: {result.status.state.value}")
-                if result.status.error:
-                    st.error(f"Error: {result.status.error.message}")
+                if show_debug:
+                    st.error(f"Query failed with state: {result.status.state.value}")
+                    if result.status.error:
+                        st.error(f"Error: {result.status.error.message}")
                 return None
         
         except Exception as api_error:
-            st.error(f"Statement Execution API error: {api_error}")
             if show_debug:
+                st.error(f"Statement Execution API error: {api_error}")
                 import traceback
                 with st.expander("🔍 Debug Details"):
                     st.code(traceback.format_exc())
             return None
     
     except Exception as e:
-        st.error(f"Error calling UC function {function_name}: {e}")
         if show_debug:
+            st.error(f"Error calling UC function {function_name}: {e}")
             import traceback
             with st.expander("🔍 Debug Details"):
                 st.code(traceback.format_exc())
