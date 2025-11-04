@@ -11,6 +11,7 @@ import json
 import time
 import os
 from databricks.sdk import WorkspaceClient
+import backoff
 
 # Page configuration
 st.set_page_config(
@@ -24,6 +25,8 @@ CATALOG = os.getenv("CATALOG_NAME", "classify_tickets_new_dev")
 SCHEMA = os.getenv("SCHEMA_NAME", "support_ai")
 WAREHOUSE_ID = os.getenv("DATABRICKS_WAREHOUSE_ID", "148ccb90800933a1")
 INDEX_NAME = f"{CATALOG}.{SCHEMA}.knowledge_base_index"
+GENIE_SPACE_ID = os.getenv("GENIE_SPACE_ID", "01f0b91aa91c1b0c8cce6529ea09f0a8")
+LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "databricks-meta-llama-3-3-70b-instruct")
 
 # Initialize Databricks client (uses Databricks Apps authentication)
 @st.cache_resource
@@ -36,6 +39,123 @@ def get_workspace_client():
         return None
 
 w = get_workspace_client()
+
+# ===== GENIE CONVERSATION TOOL =====
+class GenieConversationTool:
+    """
+    Tool for querying Genie using the proper Conversation API pattern.
+    Reference: https://learn.microsoft.com/en-us/azure/databricks/genie/conversation-api
+    """
+    
+    def __init__(self, workspace_client: WorkspaceClient, space_id: str):
+        self.w = workspace_client
+        self.space_id = space_id
+        self.conversations = {}
+        
+    def start_conversation(self, question: str):
+        """Start a new Genie conversation"""
+        try:
+            response = self.w.api_client.do(
+                'POST',
+                f'/api/2.0/genie/spaces/{self.space_id}/start-conversation',
+                body={'content': question}
+            )
+            
+            conversation_id = response.get('conversation', {}).get('id')
+            message_id = response.get('message', {}).get('id')
+            
+            return {
+                'status': 'started',
+                'conversation_id': conversation_id,
+                'message_id': message_id,
+                'response': response
+            }
+        except Exception as e:
+            return {'status': 'error', 'error': str(e)}
+    
+    @backoff.on_exception(
+        backoff.expo,
+        Exception,
+        max_tries=5,
+        max_time=120
+    )
+    def poll_for_result(self, conversation_id: str, message_id: str, max_wait_seconds: int = 120):
+        """Poll for Genie query completion"""
+        start_time = time.time()
+        poll_interval = 5
+        
+        while (time.time() - start_time) < max_wait_seconds:
+            try:
+                response = self.w.api_client.do(
+                    'GET',
+                    f'/api/2.0/genie/spaces/{self.space_id}/conversations/{conversation_id}/messages/{message_id}'
+                )
+                
+                status = response.get('status', 'UNKNOWN')
+                
+                if status in ['COMPLETED', 'FAILED', 'CANCELLED']:
+                    return {
+                        'status': status.lower(),
+                        'response': response
+                    }
+                
+                time.sleep(poll_interval)
+                
+                if (time.time() - start_time) > 120:
+                    poll_interval = min(poll_interval * 1.5, 30)
+                    
+            except Exception as e:
+                return {'status': 'error', 'error': str(e)}
+        
+        return {'status': 'timeout', 'error': 'Query did not complete within timeout period'}
+    
+    def query(self, question: str):
+        """Complete Genie query workflow: start → poll → retrieve results"""
+        # Step 1: Start conversation
+        start_result = self.start_conversation(question)
+        
+        if start_result.get('status') != 'started':
+            return f"Error starting conversation: {start_result.get('error', 'Unknown error')}"
+        
+        conversation_id = start_result['conversation_id']
+        message_id = start_result['message_id']
+        
+        # Step 2: Poll for completion
+        poll_result = self.poll_for_result(conversation_id, message_id)
+        
+        if poll_result.get('status') != 'completed':
+            return f"Query did not complete: {poll_result.get('error', poll_result.get('status'))}"
+        
+        # Step 3: Extract results
+        response = poll_result['response']
+        attachments = response.get('attachments', [])
+        
+        if not attachments:
+            text_content = response.get('content', 'No results found')
+            return {"text": text_content, "query": None, "data": None}
+        
+        # Extract from first attachment
+        attachment = attachments[0]
+        text_response = attachment.get('text', {}).get('content', '')
+        query = attachment.get('query', {}).get('query', '')
+        
+        return {
+            "text": text_response,
+            "query": query,
+            "attachment_id": attachment.get('id'),
+            "conversation_id": conversation_id,
+            "message_id": message_id
+        }
+
+# Initialize Genie tool
+@st.cache_resource
+def get_genie_tool():
+    """Initialize Genie tool"""
+    if w:
+        return GenieConversationTool(w, GENIE_SPACE_ID)
+    return None
+
+genie_tool = get_genie_tool()
 
 def query_vector_search(query_text, num_results=3):
     """
@@ -273,7 +393,7 @@ with st.sidebar:
     st.caption("💰 Cost per ticket: <$0.002\n⏱️ Processing time: <3s")
 
 # Tabs
-tab1, tab2, tab3 = st.tabs(["🚀 Quick Classify", "📋 6-Phase Classification", "📊 Batch Processing"])
+tab1, tab2, tab3, tab4 = st.tabs(["🚀 Quick Classify", "📋 6-Phase Classification", "📊 Batch Processing", "🤖 AI Agent Assistant"])
 
 with tab1:
     st.header("Quick Classification (Single Function Call)")
@@ -553,7 +673,267 @@ with tab3:
                         mime="text/csv"
                     )
 
+with tab4:
+    st.header("🤖 Multi-Agent Ticket Assistant")
+    st.markdown("""
+    **Comprehensive AI Analysis:** Get intelligent ticket analysis using multiple AI agents that coordinate to:
+    - 🎯 Classify the ticket automatically
+    - 📊 Extract detailed metadata  
+    - 📚 Search knowledge base for solutions
+    - 🔍 Find similar resolved tickets (via Genie)
+    - 💡 Generate comprehensive recommendations
+    """)
+    
+    # Ticket input
+    st.markdown("---")
+    st.subheader("Enter Support Ticket")
+    
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        sample_choice_agent = st.selectbox(
+            "Select a sample ticket or write your own:", 
+            ["Custom"] + list(SAMPLE_TICKETS.keys()), 
+            key="agent_sample"
+        )
+    
+    if sample_choice_agent == "Custom":
+        ticket_text_agent = st.text_area(
+            "Ticket Description:", 
+            height=200, 
+            value="",
+            key="agent_text",
+            placeholder="Describe the issue in detail..."
+        )
+    else:
+        ticket_text_agent = st.text_area(
+            "Ticket Description:", 
+            height=200, 
+            value=SAMPLE_TICKETS[sample_choice_agent],
+            key="agent_text_filled"
+        )
+    
+    col1, col2, col3 = st.columns([2, 2, 1])
+    with col1:
+        analyze_button = st.button("🤖 Analyze with AI Agent", type="primary", key="agent_analyze_btn")
+    with col2:
+        use_genie = st.checkbox("Include Historical Tickets (Genie)", value=True, key="agent_use_genie")
+    
+    if analyze_button:
+        if not ticket_text_agent.strip():
+            st.warning("⚠️ Please enter a ticket description")
+        else:
+            st.markdown("---")
+            st.markdown("### 🔄 Agent Processing")
+            
+            total_start = time.time()
+            results = {}
+            
+            # Container for agent status
+            status_container = st.container()
+            
+            with status_container:
+                # Phase 1: Classification
+                with st.status("🎯 Agent 1: Classifying ticket...", expanded=True) as status_classify:
+                    start = time.time()
+                    classify_result = call_uc_function("ai_classify", ticket_text_agent)
+                    elapsed = (time.time() - start) * 1000
+                    
+                    if classify_result:
+                        results['classification'] = classify_result
+                        st.write(f"✅ Category: **{classify_result.get('category', 'N/A')}**")
+                        st.write(f"✅ Priority: **{classify_result.get('priority', 'N/A')}**")
+                        st.write(f"✅ Team: **{classify_result.get('assigned_team', 'N/A')}**")
+                        status_classify.update(label=f"✅ Classification Complete ({elapsed:.0f}ms)", state="complete")
+                    else:
+                        status_classify.update(label="❌ Classification Failed", state="error")
+                
+                # Phase 2: Metadata Extraction
+                with st.status("📊 Agent 2: Extracting metadata...", expanded=True) as status_extract:
+                    start = time.time()
+                    extract_result = call_uc_function("ai_extract", ticket_text_agent)
+                    elapsed = (time.time() - start) * 1000
+                    
+                    if extract_result:
+                        results['metadata'] = extract_result
+                        priority_score = extract_result.get('priority_score', 0)
+                        try:
+                            priority_val = float(priority_score) if priority_score else 0.0
+                            st.write(f"✅ Priority Score: **{priority_val:.2f}**")
+                        except:
+                            st.write(f"✅ Priority Score: **{priority_score}**")
+                        st.write(f"✅ Urgency: **{extract_result.get('urgency_level', 'N/A')}**")
+                        if extract_result.get('affected_systems'):
+                            st.write(f"✅ Affected Systems: {', '.join(extract_result.get('affected_systems', []))}")
+                        status_extract.update(label=f"✅ Metadata Extracted ({elapsed:.0f}ms)", state="complete")
+                    else:
+                        status_extract.update(label="❌ Extraction Failed", state="error")
+                
+                # Phase 3: Vector Search
+                with st.status("📚 Agent 3: Searching knowledge base...", expanded=True) as status_search:
+                    start = time.time()
+                    vs_results = query_vector_search(ticket_text_agent, num_results=3)
+                    elapsed = (time.time() - start) * 1000
+                    
+                    if vs_results:
+                        results['knowledge_base'] = vs_results
+                        st.write(f"✅ Found {len(vs_results)} relevant documentation articles")
+                        for i, row in enumerate(vs_results[:2], 1):
+                            st.write(f"  {i}. {row[2]}")
+                        status_search.update(label=f"✅ Knowledge Base Searched ({elapsed:.0f}ms)", state="complete")
+                    else:
+                        st.write("⚠️ No relevant articles found")
+                        results['knowledge_base'] = []
+                        status_search.update(label=f"⚠️ No Results ({elapsed:.0f}ms)", state="complete")
+                
+                # Phase 4: Genie Query (if enabled)
+                if use_genie and genie_tool:
+                    with st.status("🔍 Agent 4: Querying historical tickets (Genie)...", expanded=True) as status_genie:
+                        start = time.time()
+                        
+                        # Build intelligent query based on classification
+                        category = results.get('classification', {}).get('category', 'issue')
+                        team = results.get('classification', {}).get('assigned_team', 'team')
+                        
+                        genie_question = f"Show me 3 {category} tickets assigned to {team} team that were resolved in the last 60 days, with their resolution details"
+                        
+                        st.write(f"📝 Query: _{genie_question}_")
+                        
+                        genie_result = genie_tool.query(genie_question)
+                        elapsed = (time.time() - start) * 1000
+                        
+                        if isinstance(genie_result, dict) and genie_result.get('text'):
+                            results['genie'] = genie_result
+                            st.write(f"✅ Found similar historical tickets")
+                            st.write(f"📊 {genie_result.get('text', '')[:200]}...")
+                            status_genie.update(label=f"✅ Historical Tickets Retrieved ({elapsed:.0f}ms)", state="complete")
+                        else:
+                            st.write(f"⚠️ {genie_result if isinstance(genie_result, str) else 'No historical data'}")
+                            results['genie'] = None
+                            status_genie.update(label=f"⚠️ Query Incomplete ({elapsed:.0f}ms)", state="complete")
+                elif use_genie:
+                    st.warning("⚠️ Genie tool not initialized")
+            
+            # Summary and Recommendations
+            st.markdown("---")
+            st.markdown("### 📋 Comprehensive Analysis")
+            
+            total_elapsed = (time.time() - total_start) * 1000
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Category", results.get('classification', {}).get('category', 'N/A'))
+            with col2:
+                st.metric("Priority", results.get('classification', {}).get('priority', 'N/A'))
+            with col3:
+                st.metric("Team", results.get('classification', {}).get('assigned_team', 'N/A'))
+            with col4:
+                st.metric("Processing Time", f"{total_elapsed:.0f}ms")
+            
+            # Detailed Analysis
+            st.markdown("#### 🎯 Classification Details")
+            if results.get('metadata'):
+                metadata = results['metadata']
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    priority_score = metadata.get('priority_score', 0)
+                    try:
+                        priority_val = float(priority_score) if priority_score else 0.0
+                        st.write(f"**Priority Score:** {priority_val:.2f}")
+                    except:
+                        st.write(f"**Priority Score:** {priority_score}")
+                    st.write(f"**Urgency Level:** {metadata.get('urgency_level', 'N/A')}")
+                    st.write(f"**User Impact:** {metadata.get('user_impact', 'N/A')}")
+                
+                with col2:
+                    if metadata.get('affected_systems'):
+                        st.write("**Affected Systems:**")
+                        for system in metadata.get('affected_systems', []):
+                            st.write(f"  • {system}")
+                    
+                    if metadata.get('technical_keywords'):
+                        st.write("**Technical Keywords:**")
+                        st.write(", ".join(metadata.get('technical_keywords', [])))
+            
+            # Knowledge Base Results
+            if results.get('knowledge_base'):
+                st.markdown("#### 📚 Relevant Documentation")
+                for i, row in enumerate(results['knowledge_base'], 1):
+                    with st.expander(f"📄 {row[2]}", expanded=(i == 1)):
+                        st.write(f"**Type:** {row[1]}")
+                        st.write(f"**Content:** {row[3][:500]}...")
+            
+            # Genie Results
+            if results.get('genie'):
+                st.markdown("#### 🔍 Similar Historical Tickets")
+                genie_data = results['genie']
+                
+                if genie_data.get('text'):
+                    st.info(genie_data['text'])
+                
+                if genie_data.get('query'):
+                    with st.expander("📊 View SQL Query"):
+                        st.code(genie_data['query'], language='sql')
+            
+            # Action Recommendations
+            st.markdown("#### 💡 Recommended Actions")
+            
+            # Generate context-aware recommendations
+            category = results.get('classification', {}).get('category', '')
+            priority = results.get('classification', {}).get('priority', '')
+            team = results.get('classification', {}).get('assigned_team', '')
+            
+            recommendations = []
+            
+            if priority == 'P1':
+                recommendations.append("🚨 **URGENT:** Escalate immediately to on-call team")
+                recommendations.append("📞 Initiate incident response protocol")
+            elif priority == 'P2':
+                recommendations.append("⚡ Assign to next available team member")
+                recommendations.append("📊 Monitor for similar issues")
+            else:
+                recommendations.append("📝 Add to team queue")
+                recommendations.append("📅 Schedule within SLA timeframe")
+            
+            if results.get('knowledge_base'):
+                recommendations.append(f"📚 Review {len(results['knowledge_base'])} relevant documentation articles")
+            
+            if results.get('genie') and isinstance(results.get('genie'), dict):
+                recommendations.append("🔍 Check historical resolution patterns")
+            
+            recommendations.append(f"👥 Route to **{team}** team")
+            
+            for rec in recommendations:
+                st.write(rec)
+            
+            # Export Results
+            st.markdown("---")
+            
+            export_data = {
+                "ticket": ticket_text_agent[:200],
+                "classification": results.get('classification', {}),
+                "metadata": results.get('metadata', {}),
+                "knowledge_articles": len(results.get('knowledge_base', [])),
+                "processing_time_ms": total_elapsed,
+                "recommendations": recommendations
+            }
+            
+            col1, col2 = st.columns([1, 3])
+            with col1:
+                st.download_button(
+                    label="📥 Export Analysis",
+                    data=json.dumps(export_data, indent=2),
+                    file_name="ticket_analysis.json",
+                    mime="application/json",
+                    key="agent_export_btn"
+                )
+            
+            with col2:
+                st.caption(f"💰 Estimated cost: $0.002 | ⏱️ Total time: {total_elapsed:.0f}ms | 🤖 4 AI agents coordinated")
+
 # Footer
 st.markdown("---")
-st.caption("🏗️ Built with Unity Catalog AI Functions, Vector Search, and Streamlit | ☁️ Running on Databricks Apps")
+st.caption("🏗️ Built with Unity Catalog AI Functions, Vector Search, Genie, and Streamlit | ☁️ Running on Databricks Apps")
 
