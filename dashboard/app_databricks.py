@@ -109,6 +109,26 @@ class GenieConversationTool:
         
         return {'status': 'timeout', 'error': f'Query did not complete within {max_wait_seconds}s'}
     
+    def get_query_results(self, conversation_id: str, message_id: str, attachment_id: str):
+        """
+        Retrieve query results from a completed Genie query.
+        This makes an additional API call to get the actual data.
+        """
+        try:
+            print(f"[Genie] Fetching query results for attachment {attachment_id}")
+            response = self.w.api_client.do(
+                'GET',
+                f'/api/2.0/genie/spaces/{self.space_id}/conversations/{conversation_id}/messages/{message_id}/query-result/{attachment_id}'
+            )
+            print(f"[Genie] Query results fetched successfully")
+            return {
+                'status': 'success',
+                'results': response
+            }
+        except Exception as e:
+            print(f"[Genie] Error fetching query results: {str(e)}")
+            return {'status': 'error', 'error': str(e)}
+    
     def query(self, question: str):
         """Complete Genie query workflow: start → poll → retrieve results"""
         # Step 1: Start conversation
@@ -162,48 +182,12 @@ class GenieConversationTool:
             "message_id": message_id
         }
         
-        # If we have attachments, extract additional details
+        # If we have attachments, extract additional details AND FETCH ACTUAL DATA
         if attachments:
             attachment = attachments[0]
+            attachment_id = attachment.get('id')
+            print(f"[Genie] Attachment ID: {attachment_id}")
             print(f"[Genie] Attachment keys: {list(attachment.keys())}")
-            
-            # Debug: Print the entire attachment structure (first 500 chars)
-            import json
-            try:
-                attachment_json = json.dumps(attachment, indent=2, default=str)
-                print(f"[Genie] Full attachment structure (first 1000 chars):\n{attachment_json[:1000]}")
-            except:
-                print(f"[Genie] Could not serialize attachment to JSON")
-            
-            # Extract query from attachment
-            query_obj = attachment.get('query', {})
-            print(f"[Genie] query_obj type: {type(query_obj)}, is dict: {isinstance(query_obj, dict)}")
-            
-            if isinstance(query_obj, dict):
-                print(f"[Genie] query_obj keys: {list(query_obj.keys())}")
-                result['query'] = query_obj.get('query', '')
-                
-                # Try to extract data from query results
-                query_result = query_obj.get('result', {})
-                print(f"[Genie] query_result type: {type(query_result)}, keys: {list(query_result.keys()) if isinstance(query_result, dict) else 'N/A'}")
-                
-                if isinstance(query_result, dict):
-                    # Get column schema
-                    columns = query_result.get('schema', {}).get('columns', [])
-                    column_names = [col.get('name') for col in columns]
-                    print(f"[Genie] Found columns: {column_names}")
-                    
-                    # Get data rows
-                    data_array = query_result.get('data_array', [])
-                    print(f"[Genie] Found {len(data_array)} data rows")
-                    
-                    if data_array:
-                        # Convert to list of dicts for easier display
-                        result['data'] = []
-                        for row in data_array:
-                            row_dict = dict(zip(column_names, row))
-                            result['data'].append(row_dict)
-                        print(f"[Genie] Successfully converted {len(result['data'])} rows to dicts")
             
             # Extract text from attachment (might be more detailed than main content)
             text_obj = attachment.get('text', {})
@@ -212,7 +196,44 @@ class GenieConversationTool:
                 if attachment_text:
                     result['text'] = attachment_text
             
-            result['attachment_id'] = attachment.get('id')
+            # Extract query SQL
+            query_obj = attachment.get('query', {})
+            if isinstance(query_obj, dict):
+                result['query'] = query_obj.get('query', '')
+                print(f"[Genie] Extracted SQL query: {result['query'][:100]}...")
+            
+            # *** KEY STEP: Make additional API call to get the actual query results ***
+            if attachment_id:
+                query_results = self.get_query_results(conversation_id, message_id, attachment_id)
+                
+                if query_results.get('status') == 'success':
+                    results_data = query_results.get('results', {})
+                    print(f"[Genie] Query results keys: {list(results_data.keys())}")
+                    
+                    # Extract schema and data
+                    statement_response = results_data.get('statement_response', {})
+                    if statement_response:
+                        # Get column schema
+                        manifest = statement_response.get('manifest', {})
+                        schema = manifest.get('schema', {})
+                        columns = schema.get('columns', [])
+                        column_names = [col.get('name') for col in columns]
+                        print(f"[Genie] Found columns: {column_names}")
+                        
+                        # Get data rows
+                        result_data = statement_response.get('result', {})
+                        data_array = result_data.get('data_array', [])
+                        print(f"[Genie] Found {len(data_array)} data rows")
+                        
+                        if data_array:
+                            # Convert to list of dicts for easier display
+                            result['data'] = []
+                            for row in data_array:
+                                row_dict = dict(zip(column_names, row))
+                                result['data'].append(row_dict)
+                            print(f"[Genie] Successfully converted {len(result['data'])} rows to dicts")
+                else:
+                    print(f"[Genie] Failed to fetch query results: {query_results.get('error')}")
         
         print(f"[Genie] Final result text length: {len(result.get('text') or '')}")
         print(f"[Genie] Data rows extracted: {len(result.get('data') or [])}")
