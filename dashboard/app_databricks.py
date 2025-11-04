@@ -189,6 +189,14 @@ class GenieConversationTool:
             print(f"[Genie] Attachment ID: {attachment_id}")
             print(f"[Genie] Attachment keys: {list(attachment.keys())}")
             
+            # Debug: print full attachment to see structure
+            import json
+            try:
+                att_json = json.dumps(attachment, indent=2, default=str)
+                print(f"[Genie] Full attachment (first 1500 chars):\n{att_json[:1500]}")
+            except:
+                print(f"[Genie] Could not serialize attachment")
+            
             # Extract text from attachment (might be more detailed than main content)
             text_obj = attachment.get('text', {})
             if isinstance(text_obj, dict):
@@ -196,13 +204,20 @@ class GenieConversationTool:
                 if attachment_text:
                     result['text'] = attachment_text
             
-            # Extract query SQL
+            # Extract query SQL and check if data is already in the attachment
             query_obj = attachment.get('query', {})
             if isinstance(query_obj, dict):
                 result['query'] = query_obj.get('query', '')
-                print(f"[Genie] Extracted SQL query: {result['query'][:100]}...")
+                print(f"[Genie] Extracted SQL query: {result['query'][:100] if result['query'] else 'None'}...")
+                print(f"[Genie] query_obj keys: {list(query_obj.keys())}")
+                
+                # Check if data is already in query_obj (some API versions include it directly)
+                if 'result' in query_obj:
+                    print(f"[Genie] Found 'result' directly in query_obj!")
+                    direct_result = query_obj['result']
+                    print(f"[Genie] Direct result type: {type(direct_result)}, keys: {list(direct_result.keys()) if isinstance(direct_result, dict) else 'N/A'}")
             
-            # *** KEY STEP: Make additional API call to get the actual query results ***
+            # *** Try to make additional API call to get the actual query results ***
             if attachment_id:
                 query_results = self.get_query_results(conversation_id, message_id, attachment_id)
                 
@@ -1080,6 +1095,8 @@ with tab4:
                             "has_query": bool(genie_data.get('query')),
                             "has_data": bool(genie_data.get('data'))
                         })
+                        st.markdown("**Full Genie Response (for debugging):**")
+                        st.json(genie_data)
                 
                 # Show SQL query in expander
                 if genie_data.get('query'):
