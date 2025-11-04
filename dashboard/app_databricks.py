@@ -217,69 +217,49 @@ class GenieConversationTool:
                     direct_result = query_obj['result']
                     print(f"[Genie] Direct result type: {type(direct_result)}, keys: {list(direct_result.keys()) if isinstance(direct_result, dict) else 'N/A'}")
             
-            # *** Try to make additional API call to get the actual query results ***
-            if attachment_id:
-                query_results = self.get_query_results(conversation_id, message_id, attachment_id)
-                
-                if query_results.get('status') == 'success':
-                    results_data = query_results.get('results', {})
-                    print(f"[Genie] Query results keys: {list(results_data.keys())}")
+            # *** NEW APPROACH: Execute the SQL query directly instead of using query-result endpoint ***
+            # The query-result endpoint doesn't seem to work reliably, but we have the SQL!
+            if result['query']:
+                print(f"[Genie] Executing SQL query directly...")
+                try:
+                    from databricks.sdk.service.sql import StatementState
                     
-                    # Debug: Print the full structure to understand it
-                    import json
-                    try:
-                        results_json = json.dumps(results_data, indent=2, default=str)
-                        print(f"[Genie] Full query results structure (first 2000 chars):\n{results_json[:2000]}")
-                    except:
-                        print(f"[Genie] Could not serialize results to JSON")
+                    # Execute the SQL query using Statement Execution API
+                    execute_response = self.w.statement_execution.execute_statement(
+                        warehouse_id=os.environ.get('WAREHOUSE_ID'),
+                        statement=result['query'],
+                        wait_timeout='30s'
+                    )
                     
-                    # Try multiple possible paths to find the data
-                    # Path 1: statement_response (from test notebook)
-                    statement_response = results_data.get('statement_response', {})
-                    if statement_response:
-                        print(f"[Genie] Found statement_response, keys: {list(statement_response.keys())}")
-                        # Get column schema
-                        manifest = statement_response.get('manifest', {})
-                        schema = manifest.get('schema', {})
-                        columns = schema.get('columns', [])
-                        column_names = [col.get('name') for col in columns]
-                        print(f"[Genie] Found columns from statement_response: {column_names}")
+                    print(f"[Genie] Query execution status: {execute_response.status.state}")
+                    
+                    if execute_response.status.state == StatementState.SUCCEEDED:
+                        # Extract column names
+                        columns = execute_response.manifest.schema.columns if execute_response.manifest and execute_response.manifest.schema else []
+                        column_names = [col.name for col in columns]
+                        print(f"[Genie] Found columns: {column_names}")
                         
-                        # Get data rows
-                        result_data = statement_response.get('result', {})
-                        data_array = result_data.get('data_array', [])
-                        print(f"[Genie] Found {len(data_array)} data rows from statement_response")
-                        
-                        if data_array:
-                            # Convert to list of dicts for easier display
+                        # Extract data rows
+                        if execute_response.result and execute_response.result.data_array:
+                            data_array = execute_response.result.data_array
+                            print(f"[Genie] Found {len(data_array)} data rows")
+                            
+                            # Convert to list of dicts
                             result['data'] = []
                             for row in data_array:
                                 row_dict = dict(zip(column_names, row))
                                 result['data'].append(row_dict)
                             print(f"[Genie] Successfully converted {len(result['data'])} rows to dicts")
-                    
-                    # Path 2: Direct result structure (alternative)
-                    if not result['data']:
-                        manifest = results_data.get('manifest', {})
-                        if manifest:
-                            print(f"[Genie] Trying direct manifest path, keys: {list(manifest.keys())}")
-                            schema = manifest.get('schema', {})
-                            columns = schema.get('columns', [])
-                            column_names = [col.get('name') for col in columns]
-                            print(f"[Genie] Found columns from direct path: {column_names}")
-                            
-                            result_obj = results_data.get('result', {})
-                            data_array = result_obj.get('data_array', [])
-                            print(f"[Genie] Found {len(data_array)} data rows from direct path")
-                            
-                            if data_array:
-                                result['data'] = []
-                                for row in data_array:
-                                    row_dict = dict(zip(column_names, row))
-                                    result['data'].append(row_dict)
-                                print(f"[Genie] Successfully converted {len(result['data'])} rows to dicts (direct path)")
-                else:
-                    print(f"[Genie] Failed to fetch query results: {query_results.get('error')}")
+                        else:
+                            print(f"[Genie] No data returned from query execution")
+                    else:
+                        error_msg = execute_response.status.error.message if execute_response.status.error else "Unknown error"
+                        print(f"[Genie] Query execution failed: {error_msg}")
+                        
+                except Exception as e:
+                    print(f"[Genie] Error executing SQL query: {str(e)}")
+                    import traceback
+                    print(f"[Genie] Traceback: {traceback.format_exc()}")
         
         print(f"[Genie] Final result text length: {len(result.get('text') or '')}")
         print(f"[Genie] Data rows extracted: {len(result.get('data') or [])}")
