@@ -167,13 +167,26 @@ class GenieConversationTool:
             attachment = attachments[0]
             print(f"[Genie] Attachment keys: {list(attachment.keys())}")
             
+            # Debug: Print the entire attachment structure (first 500 chars)
+            import json
+            try:
+                attachment_json = json.dumps(attachment, indent=2, default=str)
+                print(f"[Genie] Full attachment structure (first 1000 chars):\n{attachment_json[:1000]}")
+            except:
+                print(f"[Genie] Could not serialize attachment to JSON")
+            
             # Extract query from attachment
             query_obj = attachment.get('query', {})
+            print(f"[Genie] query_obj type: {type(query_obj)}, is dict: {isinstance(query_obj, dict)}")
+            
             if isinstance(query_obj, dict):
+                print(f"[Genie] query_obj keys: {list(query_obj.keys())}")
                 result['query'] = query_obj.get('query', '')
                 
                 # Try to extract data from query results
                 query_result = query_obj.get('result', {})
+                print(f"[Genie] query_result type: {type(query_result)}, keys: {list(query_result.keys()) if isinstance(query_result, dict) else 'N/A'}")
+                
                 if isinstance(query_result, dict):
                     # Get column schema
                     columns = query_result.get('schema', {}).get('columns', [])
@@ -190,6 +203,7 @@ class GenieConversationTool:
                         for row in data_array:
                             row_dict = dict(zip(column_names, row))
                             result['data'].append(row_dict)
+                        print(f"[Genie] Successfully converted {len(result['data'])} rows to dicts")
             
             # Extract text from attachment (might be more detailed than main content)
             text_obj = attachment.get('text', {})
@@ -965,6 +979,9 @@ with tab4:
                 st.markdown("#### 🔍 Similar Historical Tickets")
                 genie_data = results['genie']
                 
+                # Debug: Show what we received
+                st.info(f"Debug: Genie returned data type: {type(genie_data.get('data'))}, length: {len(genie_data.get('data') or [])}")
+                
                 # Display the actual ticket data
                 if genie_data.get('data'):
                     tickets = genie_data['data']
@@ -995,10 +1012,22 @@ with tab4:
                                 st.success(ticket['resolution_notes'])
                 else:
                     # Fallback: show text summary if no data
+                    st.warning("⚠️ No structured ticket data extracted from Genie")
                     if genie_data.get('text'):
-                        st.info(genie_data['text'])
+                        st.info(f"Genie response text:\n\n{genie_data['text']}")
                     else:
-                        st.warning("No historical ticket data found")
+                        st.error("No text content either - check server logs for debug info")
+                    
+                    # Show raw genie_data keys for debugging
+                    with st.expander("🔍 Debug: Genie Response Keys"):
+                        st.json({
+                            "keys": list(genie_data.keys()),
+                            "conversation_id": genie_data.get('conversation_id'),
+                            "message_id": genie_data.get('message_id'),
+                            "has_text": bool(genie_data.get('text')),
+                            "has_query": bool(genie_data.get('query')),
+                            "has_data": bool(genie_data.get('data'))
+                        })
                 
                 # Show SQL query in expander
                 if genie_data.get('query'):
