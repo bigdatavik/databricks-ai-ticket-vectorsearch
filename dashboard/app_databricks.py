@@ -1106,28 +1106,40 @@ with tab4:
                     st.success(f"Found {len(tickets)} similar historical tickets")
                     
                     for i, ticket in enumerate(tickets, 1):
-                        with st.expander(f"🎫 Ticket #{i}: {ticket.get('ticket_id', 'Unknown')} - {ticket.get('category', 'Unknown')}", expanded=(i == 1)):
+                        # ticket_history schema: ticket_id, ticket_text, root_cause, resolution, resolution_time_hours, resolved_at
+                        ticket_id = ticket.get('ticket_id', 'Unknown')
+                        ticket_summary = ticket.get('ticket_text', '')[:60] + "..." if len(ticket.get('ticket_text', '')) > 60 else ticket.get('ticket_text', 'Unknown')
+                        
+                        with st.expander(f"🎫 Ticket #{i}: {ticket_id} - {ticket_summary}", expanded=(i == 1)):
                             col1, col2 = st.columns(2)
                             
                             with col1:
-                                st.write(f"**Priority:** {ticket.get('priority', 'N/A')}")
-                                st.write(f"**Team:** {ticket.get('assigned_team', 'N/A')}")
-                                st.write(f"**Created:** {ticket.get('created_date', 'N/A')}")
-                                st.write(f"**Resolved:** {ticket.get('resolved_date', 'N/A')}")
-                            
-                            with col2:
+                                st.write(f"**Ticket ID:** {ticket_id}")
                                 resolution_time = ticket.get('resolution_time_hours', 'N/A')
                                 if resolution_time != 'N/A':
                                     st.write(f"**Resolution Time:** {resolution_time} hours")
-                                st.write(f"**Status:** {ticket.get('status', 'N/A')}")
+                                resolved_at = ticket.get('resolved_at', 'N/A')
+                                if resolved_at != 'N/A':
+                                    # Format the timestamp nicely
+                                    st.write(f"**Resolved At:** {str(resolved_at)[:19]}")
                             
-                            if ticket.get('description'):
-                                st.write("**Description:**")
-                                st.write(ticket['description'])
+                            with col2:
+                                st.write(f"**Status:** ✅ Resolved")
                             
-                            if ticket.get('resolution_notes'):
-                                st.write("**Resolution:**")
-                                st.success(ticket['resolution_notes'])
+                            # Show ticket description
+                            if ticket.get('ticket_text'):
+                                st.markdown("**📝 Issue Description:**")
+                                st.info(ticket['ticket_text'])
+                            
+                            # Show root cause if available
+                            if ticket.get('root_cause'):
+                                st.markdown("**🔍 Root Cause:**")
+                                st.warning(ticket['root_cause'])
+                            
+                            # Show resolution
+                            if ticket.get('resolution'):
+                                st.markdown("**✅ Resolution:**")
+                                st.success(ticket['resolution'])
                 else:
                     # Fallback: show text summary if no data
                     st.warning("⚠️ No structured ticket data extracted from Genie")
