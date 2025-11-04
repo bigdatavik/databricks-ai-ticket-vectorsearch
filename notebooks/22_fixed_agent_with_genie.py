@@ -12,7 +12,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --quiet --upgrade databricks-sdk mlflow backoff
+# MAGIC %pip install --quiet --upgrade databricks-sdk mlflow backoff databricks-langchain langchain langgraph langchain-core
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -342,7 +342,7 @@ for t in tools:
 
 # COMMAND ----------
 
-from langchain_community.chat_models import ChatDatabricks
+from databricks_langchain import ChatDatabricks
 
 # Use the correct endpoint name
 # The full invocations URL is constructed by the ChatDatabricks client
