@@ -186,8 +186,10 @@ class GenieConversationTool:
         if attachments:
             attachment = attachments[0]
             attachment_id = attachment.get('id')
+            print(f"[Genie] Found {len(attachments)} attachments")
             print(f"[Genie] Attachment ID: {attachment_id}")
             print(f"[Genie] Attachment keys: {list(attachment.keys())}")
+            print(f"[Genie] Attachment type: {attachment.get('type', 'unknown')}")
             
             # Debug: print full attachment to see structure
             import json
@@ -197,6 +199,9 @@ class GenieConversationTool:
             except:
                 print(f"[Genie] Could not serialize attachment")
             
+            if not attachment_id:
+                print(f"[Genie] WARNING: No attachment_id found! Cannot retrieve query results.")
+            
             # Extract text from attachment (might be more detailed than main content)
             text_obj = attachment.get('text', {})
             if isinstance(text_obj, dict):
@@ -204,18 +209,27 @@ class GenieConversationTool:
                 if attachment_text:
                     result['text'] = attachment_text
             
-            # Extract query SQL and check if data is already in the attachment
+            # Extract query SQL - try multiple possible structures
             query_obj = attachment.get('query', {})
             if isinstance(query_obj, dict):
+                # Try structure 1: query.query
                 result['query'] = query_obj.get('query', '')
+                
+                # Try structure 2: query.content (from the article example)
+                if not result['query']:
+                    result['query'] = query_obj.get('content', '')
+                
                 print(f"[Genie] Extracted SQL query: {result['query'][:100] if result['query'] else 'None'}...")
                 print(f"[Genie] query_obj keys: {list(query_obj.keys())}")
+                print(f"[Genie] query_obj type: {type(query_obj)}")
                 
-                # Check if data is already in query_obj (some API versions include it directly)
-                if 'result' in query_obj:
-                    print(f"[Genie] Found 'result' directly in query_obj!")
-                    direct_result = query_obj['result']
-                    print(f"[Genie] Direct result type: {type(direct_result)}, keys: {list(direct_result.keys()) if isinstance(direct_result, dict) else 'N/A'}")
+                # Debug: print full query object
+                import json
+                try:
+                    query_json = json.dumps(query_obj, indent=2, default=str)
+                    print(f"[Genie] Full query_obj (first 1000 chars):\n{query_json[:1000]}")
+                except:
+                    print(f"[Genie] Could not serialize query_obj")
             
             # *** STEP 6: Retrieve query results using attachment_id (per Microsoft documentation) ***
             # https://learn.microsoft.com/en-us/azure/databricks/genie/conversation-api#-step-6-retrieve-query-results
