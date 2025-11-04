@@ -4,10 +4,11 @@ Complete end-to-end system for automated IT support ticket classification using 
 
 ## 🎯 Key Features
 
-- **6-Phase Classification Workflow**: Progressive classification with increasing intelligence
+- **Multi-Agent AI System**: 4-agent workflow with classification, metadata extraction, knowledge search, and historical ticket retrieval
 - **Unity Catalog AI Functions**: Serverless AI with `ai_classify`, `ai_extract`, `ai_gen`
 - **Vector Search Integration**: Semantic search over knowledge base documents
-- **Streamlit Dashboard**: Real-time classification with cost tracking
+- **Genie API Integration**: Natural language querying of historical tickets
+- **Streamlit Dashboard**: Real-time classification with AI agent assistant
 - **Multi-Environment Support**: Dev (fast iteration), Staging, Production
 - **Cost Optimized**: <$0.002 per ticket, 95%+ accuracy
 
@@ -21,30 +22,42 @@ Complete end-to-end system for automated IT support ticket classification using 
 
 ## 🏗️ Architecture
 
-### 6-Phase Classification Workflow
+### Multi-Agent AI Workflow (🤖 AI Agent Assistant Tab)
 
-1. **Basic Classification** - UC Function: `ai_classify(ticket_text)`
+**4-Agent Sequential System** for comprehensive ticket intelligence:
+
+1. **Agent 1: Classification** - UC Function: `ai_classify(ticket_text)`
    - Returns: category, priority, assigned_team
    
-2. **Metadata Extraction** - UC Function: `ai_extract(ticket_text)`
+2. **Agent 2: Metadata Extraction** - UC Function: `ai_extract(ticket_text)`
    - Returns: JSON with priority_score, urgency_level, affected_systems
    
-3. **Vector Search** - Semantic retrieval from knowledge base
+3. **Agent 3: Knowledge Search** - Vector Search over knowledge base
    - Top 3 relevant documents using BGE embeddings
    
+4. **Agent 4: Historical Tickets** - Genie Conversation API
+   - Natural language query for similar resolved tickets
+   - Shows resolution details, root causes, and resolution times
+
+### Classic 6-Phase Classification Workflow
+
+1. **Basic Classification** - UC Function: `ai_classify(ticket_text)`
+   
+2. **Metadata Extraction** - UC Function: `ai_extract(ticket_text)`
+   
+3. **Vector Search** - Semantic retrieval from knowledge base
+   
 4. **Summary Generation** - UC Function: `ai_gen(ticket_text, context)`
-   - Context-aware recommendations
    
 5. **Hybrid Classification** - Combines all above phases
-   - Most accurate classification
    
 6. **Quick Classify** - Single UC Function call
-   - Fast path for simple tickets
 
 ### Technology Stack
 
 - **Databricks Runtime**: 16.4 LTS (Spark 3.5.2)
 - **Unity Catalog**: AI Functions + Vector Search
+- **Genie API**: Natural language SQL generation & execution
 - **Embedding Model**: `databricks-bge-large-en` (free)
 - **Vector Search**: Delta Sync with TRIGGERED mode
 - **Dashboard**: Streamlit (local + Databricks Apps)
@@ -130,9 +143,12 @@ This will:
 │   ├── 04_deploy_uc_function_quick_classify.py
 │   ├── 06_prepare_sample_tickets.py
 │   ├── 08_grant_app_permissions.py
+│   ├── 09_grant_genie_permissions.py # Grant Genie space access
 │   ├── 10_upload_knowledge_docs.py  # Uploads KB files to volume
 │   ├── 13_reload_kb_with_proper_chunking.py  # Processes KB with chunking
-│   └── 14_recreate_vector_search_index.py
+│   ├── 14_recreate_vector_search_index.py
+│   ├── 19_create_ticket_history_poc.py  # Sample historical tickets
+│   └── 22_fixed_agent_with_genie.py # LangGraph multi-agent POC
 │
 ├── dashboard/
 │   ├── app_simple.py                # Local dev version
@@ -156,8 +172,8 @@ This will:
 │
 └── tests/
     ├── test_vector_search.py        # Local Vector Search testing
-    ├── test_vector_search_index.py  # Databricks notebook for testing
-    └── rebuild_vector_index.py      # Utility for full index rebuild
+    ├── test_genie_api.py            # Genie API response testing
+    └── 22_fixed_agent_with_genie.ipynb  # LangGraph POC validation
 ```
 
 ## 🎯 Deployment Workflow

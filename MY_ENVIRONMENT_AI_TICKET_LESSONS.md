@@ -1757,6 +1757,238 @@ print(result)
 
 ---
 
+## 🔮 Genie API Integration (Multi-Agent Enhancement)
+
+### Overview
+
+Integrated Genie API for natural language querying of historical tickets, completing the multi-agent system with real-time classification, knowledge base search, and historical ticket retrieval.
+
+### Architecture
+
+**4-Agent Sequential Workflow:**
+1. **Agent 1:** Classification (UC Function: `ai_classify`)
+2. **Agent 2:** Metadata Extraction (UC Function: `ai_extract`)
+3. **Agent 3:** Knowledge Base Search (Vector Search)
+4. **Agent 4:** Historical Tickets (Genie Conversation API)
+
+### Critical Genie API Bugs & Fixes
+
+#### Bug #1: Wrong Warehouse ID
+**Problem:** Used `os.environ.get('WAREHOUSE_ID')` but variable is `DATABRICKS_WAREHOUSE_ID`
+```python
+# ❌ Wrong
+warehouse_id=os.environ.get('WAREHOUSE_ID')
+
+# ✅ Correct
+warehouse_id=os.getenv("DATABRICKS_WAREHOUSE_ID", "148ccb90800933a1")
+```
+
+**Impact:** All query executions failed silently
+
+#### Bug #2: Wrong Attachment Field Name
+**Problem:** Genie returns `attachment_id`, not `id`
+```python
+# ❌ Wrong
+attachment_id = attachment.get('id')  # Returns None!
+
+# ✅ Correct  
+attachment_id = attachment.get('attachment_id')
+```
+
+**Discovery:** Found by running test notebook and inspecting actual API response
+**Impact:** Could not retrieve query results from Genie
+
+#### Bug #3: Missing Response Wrapper
+**Problem:** Query-result response wrapped in `statement_response`
+```python
+# ❌ Wrong
+manifest = response.get('manifest', {})
+
+# ✅ Correct
+statement_response = response.get('statement_response', {})
+manifest = statement_response.get('manifest', {})
+```
+
+**Discovery:** Test notebook showed actual response structure
+**Impact:** Could not parse data from Genie API
+
+### Genie API Implementation Pattern
+
+#### 3-Step Conversation Pattern
+
+```python
+class GenieConversationTool:
+    def query(self, question: str):
+        # Step 1: Start conversation
+        response = self.w.api_client.do(
+            'POST',
+            f'/api/2.0/genie/spaces/{space_id}/start-conversation',
+            body={'content': question}
+        )
+        conversation_id = response['conversation']['id']
+        message_id = response['message']['id']
+        
+        # Step 2: Poll for completion
+        while status != 'COMPLETED':
+            response = self.w.api_client.do(
+                'GET',
+                f'/api/2.0/genie/spaces/{space_id}/conversations/{conversation_id}/messages/{message_id}'
+            )
+            status = response.get('status')
+            time.sleep(poll_interval)
+        
+        # Step 3: Retrieve query results
+        attachment_id = response['attachments'][0]['attachment_id']
+        result = self.w.api_client.do(
+            'GET',
+            f'/api/2.0/genie/spaces/{space_id}/conversations/{conversation_id}/messages/{message_id}/query-result/{attachment_id}'
+        )
+        
+        # Extract data from statement_response wrapper
+        statement_response = result['statement_response']
+        data_array = statement_response['result']['data_array']
+        columns = statement_response['manifest']['schema']['columns']
+        
+        return data_array, columns
+```
+
+### Hybrid Approach: Genie + Fallback
+
+**Best Practice:** Try Genie API, fallback to direct SQL execution
+
+```python
+# Try Genie query-result endpoint
+if attachment_id:
+    result = get_query_results(attachment_id)
+    if result.get('data'):
+        return result  # Success!
+
+# Fallback: Execute SQL directly
+if result.get('query') and not result.get('data'):
+    execute_response = w.statement_execution.execute_statement(
+        warehouse_id=WAREHOUSE_ID,
+        statement=result['query']
+    )
+    return parse_statement_response(execute_response)
+```
+
+**Why:** Genie generates perfect SQL, but API availability varies by environment
+
+### Permissions Required
+
+1. **Genie Space Access:**
+   - Service principal needs "Can Use" permission on Genie space
+   - Grant via UI: Genie → Space Settings → Share
+   - Notebook: `notebooks/09_grant_genie_permissions.py`
+
+2. **Table Access:**
+   ```sql
+   GRANT SELECT ON TABLE catalog.schema.ticket_history TO `service_principal_id`;
+   ```
+
+3. **Warehouse Access:**
+   ```sql
+   GRANT CAN_USE ON WAREHOUSE warehouse_id TO `service_principal_id`;
+   ```
+
+### Testing Strategy
+
+**Create Test Notebook** (`tests/test_genie_api.py`):
+1. Test each API step independently
+2. Print full response structures
+3. Verify data extraction
+4. Compare Genie API vs direct SQL execution
+
+**Key Insight:** Test notebooks reveal actual API response structures, not what documentation assumes!
+
+### Dashboard Integration
+
+**Display Method Indicator:**
+```python
+if result.get('used_fallback'):
+    st.caption("📡 Data Source: Direct SQL Execution (Fallback)")
+else:
+    st.caption("📡 Data Source: Genie query-result API")
+```
+
+**Display Historical Tickets:**
+```python
+for ticket in tickets:
+    with st.expander(f"🎫 {ticket['ticket_id']}"):
+        st.write(f"**Issue:** {ticket['ticket_text']}")
+        st.warning(f"**Root Cause:** {ticket['root_cause']}")
+        st.success(f"**Resolution:** {ticket['resolution']}")
+        st.info(f"**Time:** {ticket['resolution_time_hours']} hours")
+```
+
+### Key Lessons Learned
+
+1. **API Response Structure ≠ Documentation**
+   - Always test with actual API calls
+   - Print full responses to understand structure
+   - Don't trust documentation alone
+
+2. **Field Names Matter**
+   - `attachment_id` vs `id`
+   - `statement_response` wrapper exists
+   - Test notebooks reveal truth
+
+3. **Hybrid Approach is Best**
+   - Use Genie for SQL generation (intelligence)
+   - Use direct execution for reliability
+   - Both approaches use same data format
+
+4. **Environment Variables Are Critical**
+   - `DATABRICKS_WAREHOUSE_ID` not `WAREHOUSE_ID`
+   - Wrong warehouse = silent failures
+   - Always use defaults: `os.getenv("VAR", "default")`
+
+5. **Incremental Debugging Wins**
+   - Fix one bug at a time
+   - Test each fix independently  
+   - Commit working state before next fix
+
+### Files Created
+
+- `notebooks/19_create_ticket_history_poc.py` - Sample historical tickets table
+- `notebooks/09_grant_genie_permissions.py` - Grant service principal access
+- `tests/test_genie_api.py` - Comprehensive API testing notebook
+- `dashboard/app_databricks.py` - Full multi-agent integration
+
+### Monitoring & Debugging
+
+**Server Logs (print statements):**
+```python
+print(f"[Genie] Starting conversation...")
+print(f"[Genie] Poll status: {status}")
+print(f"[Genie] Found {len(attachments)} attachments")
+print(f"[Genie] Attachment ID: {attachment_id}")
+print(f"[Genie] Method used: {'GENIE API' if not fallback else 'FALLBACK SQL'}")
+```
+
+**UI Debug Info:**
+```python
+st.info(f"Debug: Genie returned data type: {type(data)}, length: {len(data)}")
+with st.expander("🔍 Debug: Genie Response Keys"):
+    st.json(genie_response)
+```
+
+### Performance Metrics
+
+- **Genie SQL Generation:** ~10-15 seconds
+- **Query Execution:** ~2-3 seconds
+- **Data Display:** Instant
+- **Total Time:** ~15-20 seconds for historical ticket retrieval
+
+### Cost Optimization
+
+- **Genie API:** Included in Databricks platform
+- **SQL Warehouse:** Serverless (pay per query)
+- **Caching:** Results cached in session state
+- **Estimated Cost:** <$0.001 per query
+
+---
+
 **You now have everything needed to build this system from scratch! 🎉**
 
 For questions or issues, review the lessons learned sections and common issues above.
