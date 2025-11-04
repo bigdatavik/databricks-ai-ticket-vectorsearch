@@ -200,8 +200,8 @@ class GenieConversationTool:
             
             result['attachment_id'] = attachment.get('id')
         
-        print(f"[Genie] Final result text length: {len(result.get('text', ''))}")
-        print(f"[Genie] Data rows extracted: {len(result.get('data', []))}")
+        print(f"[Genie] Final result text length: {len(result.get('text') or '')}")
+        print(f"[Genie] Data rows extracted: {len(result.get('data') or [])}")
         return result
 
 # Initialize Genie tool
