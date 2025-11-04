@@ -17,6 +17,10 @@ variables:
   vector_endpoint:
     description: "Shared Vector Search endpoint name (NEVER DELETED - shared across projects)"
     default: one-env-shared-endpoint-2
+  
+  genie_space_id:
+    description: "Genie Space ID for historical ticket queries"
+    default: 01f0b91aa91c1b0c8cce6529ea09f0a8
 
 workspace:
   host: https://adb-984752964297111.11.azuredatabricks.net
@@ -150,6 +154,17 @@ resources:
             base_parameters:
               app_name: classify-tickets-dashboard-dev
               catalog: ${var.catalog}
+            source: WORKSPACE
+        
+        - task_key: grant_genie_permissions
+          depends_on:
+            - task_key: grant_app_permissions
+          existing_cluster_id: 0304-162117-qgsi1x04
+          notebook_task:
+            notebook_path: ./notebooks/09_grant_genie_permissions.py
+            base_parameters:
+              app_name: classify-tickets-dashboard-dev
+              genie_space_id: ${var.genie_space_id}
             source: WORKSPACE
 
   # Streamlit dashboard deployment
