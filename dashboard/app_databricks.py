@@ -807,12 +807,20 @@ with tab4:
                         category = results.get('classification', {}).get('category', 'issue')
                         team = results.get('classification', {}).get('assigned_team', 'team')
                         
-                        genie_question = f"Show me 3 {category} tickets assigned to {team} team that were resolved in the last 60 days, with their resolution details"
+                        # Simplified query that's more likely to work
+                        genie_question = f"Show me 3 recent tickets from the {team} team with their resolution details"
                         
                         st.write(f"📝 Query: _{genie_question}_")
                         
                         genie_result = genie_tool.query(genie_question)
                         elapsed = (time.time() - start) * 1000
+                        
+                        # If first query fails, try a simpler fallback
+                        if isinstance(genie_result, str) and 'did not complete' in genie_result.lower():
+                            st.write(f"⚠️ First query failed, trying simpler query...")
+                            genie_question = "Show me 3 tickets with their resolution details"
+                            genie_result = genie_tool.query(genie_question)
+                            elapsed = (time.time() - start) * 1000
                         
                         if isinstance(genie_result, dict) and genie_result.get('text'):
                             results['genie'] = genie_result
@@ -820,7 +828,9 @@ with tab4:
                             st.write(f"📊 {genie_result.get('text', '')[:200]}...")
                             status_genie.update(label=f"✅ Historical Tickets Retrieved ({elapsed:.0f}ms)", state="complete")
                         else:
-                            st.write(f"⚠️ {genie_result if isinstance(genie_result, str) else 'No historical data'}")
+                            error_msg = genie_result if isinstance(genie_result, str) else 'No historical data'
+                            st.write(f"⚠️ {error_msg}")
+                            st.write(f"ℹ️ Genie may need a few minutes to index the ticket_history table")
                             results['genie'] = None
                             status_genie.update(label=f"⚠️ Query Incomplete ({elapsed:.0f}ms)", state="complete")
                 elif use_genie:
