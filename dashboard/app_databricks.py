@@ -141,24 +141,48 @@ class GenieConversationTool:
         
         # Step 3: Extract results
         response = poll_result['response']
+        
+        # Debug: Log the response structure
+        print(f"[Genie] Response keys: {list(response.keys())}")
+        print(f"[Genie] Content: {response.get('content', '')[:200]}")
+        
+        # Get main content (always present)
+        text_content = response.get('content', '')
+        
+        # Try to get attachments
         attachments = response.get('attachments', [])
+        print(f"[Genie] Found {len(attachments)} attachments")
         
-        if not attachments:
-            text_content = response.get('content', 'No results found')
-            return {"text": text_content, "query": None, "data": None}
-        
-        # Extract from first attachment
-        attachment = attachments[0]
-        text_response = attachment.get('text', {}).get('content', '')
-        query = attachment.get('query', {}).get('query', '')
-        
-        return {
-            "text": text_response,
-            "query": query,
-            "attachment_id": attachment.get('id'),
+        # Initialize result
+        result = {
+            "text": text_content,
+            "query": None,
+            "data": None,
             "conversation_id": conversation_id,
             "message_id": message_id
         }
+        
+        # If we have attachments, extract additional details
+        if attachments:
+            attachment = attachments[0]
+            print(f"[Genie] Attachment keys: {list(attachment.keys())}")
+            
+            # Extract query from attachment
+            query_obj = attachment.get('query', {})
+            if isinstance(query_obj, dict):
+                result['query'] = query_obj.get('query', '')
+            
+            # Extract text from attachment (might be more detailed than main content)
+            text_obj = attachment.get('text', {})
+            if isinstance(text_obj, dict):
+                attachment_text = text_obj.get('content', '')
+                if attachment_text:
+                    result['text'] = attachment_text
+            
+            result['attachment_id'] = attachment.get('id')
+        
+        print(f"[Genie] Final result text length: {len(result.get('text', ''))}")
+        return result
 
 # Initialize Genie tool
 @st.cache_resource
@@ -835,15 +859,31 @@ with tab4:
                             genie_result = genie_tool.query(genie_question)
                             elapsed = (time.time() - start) * 1000
                         
-                        if isinstance(genie_result, dict) and genie_result.get('text'):
-                            results['genie'] = genie_result
-                            st.write(f"✅ Found similar historical tickets")
-                            st.write(f"📊 {genie_result.get('text', '')[:200]}...")
-                            status_genie.update(label=f"✅ Historical Tickets Retrieved ({elapsed:.0f}ms)", state="complete")
-                        else:
-                            error_msg = genie_result if isinstance(genie_result, str) else 'No historical data'
-                            st.write(f"⚠️ {error_msg}")
+                        # Check if we got a result (dict with text, or string response)
+                        if isinstance(genie_result, dict):
+                            text_result = genie_result.get('text', '')
+                            if text_result and len(text_result.strip()) > 0:
+                                results['genie'] = genie_result
+                                st.write(f"✅ Found similar historical tickets")
+                                # Show first 200 chars as preview
+                                preview = text_result[:200]
+                                if len(text_result) > 200:
+                                    preview += "..."
+                                st.write(f"📊 {preview}")
+                                status_genie.update(label=f"✅ Historical Tickets Retrieved ({elapsed:.0f}ms)", state="complete")
+                            else:
+                                st.write(f"⚠️ Genie query completed but returned no text content")
+                                st.write(f"📝 Response keys: {list(genie_result.keys())}")
+                                results['genie'] = None
+                                status_genie.update(label=f"⚠️ No Data Returned ({elapsed:.0f}ms)", state="complete")
+                        elif isinstance(genie_result, str):
+                            # String response indicates an error
+                            st.write(f"⚠️ {genie_result}")
                             st.write(f"ℹ️ Genie may need a few minutes to index the ticket_history table")
+                            results['genie'] = None
+                            status_genie.update(label=f"⚠️ Query Incomplete ({elapsed:.0f}ms)", state="complete")
+                        else:
+                            st.write(f"⚠️ Unexpected response type: {type(genie_result)}")
                             results['genie'] = None
                             status_genie.update(label=f"⚠️ Query Incomplete ({elapsed:.0f}ms)", state="complete")
                 elif use_genie:
