@@ -171,6 +171,25 @@ class GenieConversationTool:
             query_obj = attachment.get('query', {})
             if isinstance(query_obj, dict):
                 result['query'] = query_obj.get('query', '')
+                
+                # Try to extract data from query results
+                query_result = query_obj.get('result', {})
+                if isinstance(query_result, dict):
+                    # Get column schema
+                    columns = query_result.get('schema', {}).get('columns', [])
+                    column_names = [col.get('name') for col in columns]
+                    print(f"[Genie] Found columns: {column_names}")
+                    
+                    # Get data rows
+                    data_array = query_result.get('data_array', [])
+                    print(f"[Genie] Found {len(data_array)} data rows")
+                    
+                    if data_array:
+                        # Convert to list of dicts for easier display
+                        result['data'] = []
+                        for row in data_array:
+                            row_dict = dict(zip(column_names, row))
+                            result['data'].append(row_dict)
             
             # Extract text from attachment (might be more detailed than main content)
             text_obj = attachment.get('text', {})
@@ -182,6 +201,7 @@ class GenieConversationTool:
             result['attachment_id'] = attachment.get('id')
         
         print(f"[Genie] Final result text length: {len(result.get('text', ''))}")
+        print(f"[Genie] Data rows extracted: {len(result.get('data', []))}")
         return result
 
 # Initialize Genie tool
@@ -945,9 +965,42 @@ with tab4:
                 st.markdown("#### 🔍 Similar Historical Tickets")
                 genie_data = results['genie']
                 
-                if genie_data.get('text'):
-                    st.info(genie_data['text'])
+                # Display the actual ticket data
+                if genie_data.get('data'):
+                    tickets = genie_data['data']
+                    st.success(f"Found {len(tickets)} similar historical tickets")
+                    
+                    for i, ticket in enumerate(tickets, 1):
+                        with st.expander(f"🎫 Ticket #{i}: {ticket.get('ticket_id', 'Unknown')} - {ticket.get('category', 'Unknown')}", expanded=(i == 1)):
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                st.write(f"**Priority:** {ticket.get('priority', 'N/A')}")
+                                st.write(f"**Team:** {ticket.get('assigned_team', 'N/A')}")
+                                st.write(f"**Created:** {ticket.get('created_date', 'N/A')}")
+                                st.write(f"**Resolved:** {ticket.get('resolved_date', 'N/A')}")
+                            
+                            with col2:
+                                resolution_time = ticket.get('resolution_time_hours', 'N/A')
+                                if resolution_time != 'N/A':
+                                    st.write(f"**Resolution Time:** {resolution_time} hours")
+                                st.write(f"**Status:** {ticket.get('status', 'N/A')}")
+                            
+                            if ticket.get('description'):
+                                st.write("**Description:**")
+                                st.write(ticket['description'])
+                            
+                            if ticket.get('resolution_notes'):
+                                st.write("**Resolution:**")
+                                st.success(ticket['resolution_notes'])
+                else:
+                    # Fallback: show text summary if no data
+                    if genie_data.get('text'):
+                        st.info(genie_data['text'])
+                    else:
+                        st.warning("No historical ticket data found")
                 
+                # Show SQL query in expander
                 if genie_data.get('query'):
                     with st.expander("📊 View SQL Query"):
                         st.code(genie_data['query'], language='sql')

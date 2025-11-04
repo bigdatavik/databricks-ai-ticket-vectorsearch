@@ -38,7 +38,7 @@ INDEX_NAME = f"{CATALOG}.{SCHEMA}.knowledge_base_index"
 
 # IMPORTANT: Set this after creating Genie Space
 # Get it from Genie Space URL: .../genie/spaces/YOUR_ID_HERE
-GENIE_SPACE_ID = "YOUR_GENIE_SPACE_ID"  # TODO: Update after creating Genie Space
+GENIE_SPACE_ID = "01f0b91aa91c1b0c8cce6529ea09f0a8"  # TODO: Update after creating Genie Space
 
 # LLM Configuration
 LLM_ENDPOINT = "databricks-meta-llama-3-1-70b-instruct"
