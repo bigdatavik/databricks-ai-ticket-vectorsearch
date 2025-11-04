@@ -73,16 +73,10 @@ class GenieConversationTool:
         except Exception as e:
             return {'status': 'error', 'error': str(e)}
     
-    @backoff.on_exception(
-        backoff.expo,
-        Exception,
-        max_tries=5,
-        max_time=120
-    )
-    def poll_for_result(self, conversation_id: str, message_id: str, max_wait_seconds: int = 120):
+    def poll_for_result(self, conversation_id: str, message_id: str, max_wait_seconds: int = 180):
         """Poll for Genie query completion"""
         start_time = time.time()
-        poll_interval = 5
+        poll_interval = 3  # Start with 3 seconds
         
         while (time.time() - start_time) < max_wait_seconds:
             try:
@@ -93,37 +87,56 @@ class GenieConversationTool:
                 
                 status = response.get('status', 'UNKNOWN')
                 
+                # Log status for debugging
+                print(f"[Genie Poll] Status: {status}, Elapsed: {time.time() - start_time:.1f}s")
+                
                 if status in ['COMPLETED', 'FAILED', 'CANCELLED']:
                     return {
                         'status': status.lower(),
                         'response': response
                     }
                 
+                # Wait before next poll
                 time.sleep(poll_interval)
                 
-                if (time.time() - start_time) > 120:
-                    poll_interval = min(poll_interval * 1.5, 30)
+                # Gradually increase poll interval
+                poll_interval = min(poll_interval * 1.2, 10)
                     
             except Exception as e:
-                return {'status': 'error', 'error': str(e)}
+                print(f"[Genie Poll Error] {str(e)}")
+                # Don't fail immediately on single poll error, keep trying
+                time.sleep(poll_interval)
         
-        return {'status': 'timeout', 'error': 'Query did not complete within timeout period'}
+        return {'status': 'timeout', 'error': f'Query did not complete within {max_wait_seconds}s'}
     
     def query(self, question: str):
         """Complete Genie query workflow: start → poll → retrieve results"""
         # Step 1: Start conversation
+        print(f"[Genie] Starting conversation with question: {question[:100]}...")
         start_result = self.start_conversation(question)
         
         if start_result.get('status') != 'started':
-            return f"Error starting conversation: {start_result.get('error', 'Unknown error')}"
+            error_msg = f"Error starting conversation: {start_result.get('error', 'Unknown error')}"
+            print(f"[Genie Error] {error_msg}")
+            return error_msg
         
         conversation_id = start_result['conversation_id']
         message_id = start_result['message_id']
+        print(f"[Genie] Started conversation {conversation_id}, message {message_id}")
         
         # Step 2: Poll for completion
-        poll_result = self.poll_for_result(conversation_id, message_id)
+        poll_result = self.poll_for_result(conversation_id, message_id, max_wait_seconds=180)
         
-        if poll_result.get('status') != 'completed':
+        poll_status = poll_result.get('status')
+        print(f"[Genie] Poll result status: {poll_status}")
+        
+        if poll_status == 'failed':
+            # Get more details about the failure
+            response = poll_result.get('response', {})
+            error_detail = response.get('error', {}).get('message', 'Query execution failed')
+            return f"Query failed: {error_detail}"
+        
+        if poll_status != 'completed':
             return f"Query did not complete: {poll_result.get('error', poll_result.get('status'))}"
         
         # Step 3: Extract results
