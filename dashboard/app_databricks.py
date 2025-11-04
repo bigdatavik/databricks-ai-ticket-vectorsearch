@@ -198,7 +198,8 @@ class GenieConversationTool:
         # If we have attachments, extract additional details AND FETCH ACTUAL DATA
         if attachments:
             attachment = attachments[0]
-            attachment_id = attachment.get('id')
+            # Note: The field is 'attachment_id', not 'id'!
+            attachment_id = attachment.get('attachment_id') or attachment.get('id')
             print(f"[Genie] Found {len(attachments)} attachments")
             print(f"[Genie] Attachment ID: {attachment_id}")
             print(f"[Genie] Attachment keys: {list(attachment.keys())}")

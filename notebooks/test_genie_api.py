@@ -105,7 +105,8 @@ if attachments:
         print(json.dumps(attachment, indent=2, default=str))
         
         # Extract key information
-        attachment_id = attachment.get('id')
+        # Note: The field is 'attachment_id', not 'id'!
+        attachment_id = attachment.get('attachment_id') or attachment.get('id')
         attachment_type = attachment.get('type')
         
         print(f"\n🔑 Attachment ID: {attachment_id}")
