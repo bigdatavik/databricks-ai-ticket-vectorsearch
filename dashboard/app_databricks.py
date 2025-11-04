@@ -300,6 +300,7 @@ class GenieConversationTool:
         # FALLBACK: If we have the SQL query but no data, execute it ourselves
         if result.get('query') and not result.get('data'):
             print(f"[Genie] FALLBACK: No data from Genie API, executing SQL query directly...")
+            result['used_fallback'] = True  # Mark that we're using fallback
             try:
                 from databricks.sdk.service.sql import StatementState
                 
@@ -335,6 +336,16 @@ class GenieConversationTool:
         
         print(f"[Genie] Final result text length: {len(result.get('text') or '')}")
         print(f"[Genie] Data rows extracted: {len(result.get('data') or [])}")
+        
+        # Determine which method was used
+        if result.get('data'):
+            if result.get('used_fallback'):
+                result['method'] = 'Direct SQL Execution (Fallback)'
+                print(f"[Genie] Method used: FALLBACK SQL")
+            else:
+                result['method'] = 'Genie query-result API'
+                print(f"[Genie] Method used: GENIE API")
+        
         return result
 
 # Initialize Genie tool
@@ -1104,7 +1115,9 @@ with tab4:
                 # Display the actual ticket data
                 if genie_data.get('data'):
                     tickets = genie_data['data']
+                    method = genie_data.get('method', 'Unknown')
                     st.success(f"Found {len(tickets)} similar historical tickets")
+                    st.caption(f"📡 Data Source: {method}")
                     
                     for i, ticket in enumerate(tickets, 1):
                         # ticket_history schema: ticket_id, ticket_text, root_cause, resolution, resolution_time_hours, resolved_at
