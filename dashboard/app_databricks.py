@@ -266,31 +266,35 @@ class GenieConversationTool:
                     except:
                         print(f"[Genie] Could not serialize query result response")
                     
-                    # Parse the response according to Statement Execution API format
-                    # The query-result endpoint returns data in the same format as Statement Execution API
-                    manifest = query_result_response.get('manifest', {})
-                    if manifest:
-                        schema = manifest.get('schema', {})
-                        columns = schema.get('columns', [])
-                        column_names = [col.get('name') for col in columns]
-                        print(f"[Genie] Found columns: {column_names}")
-                        
-                        # Get data rows
-                        result_obj = query_result_response.get('result', {})
-                        data_array = result_obj.get('data_array', [])
-                        print(f"[Genie] Found {len(data_array)} data rows")
-                        
-                        if data_array:
-                            # Convert to list of dicts
-                            result['data'] = []
-                            for row in data_array:
-                                row_dict = dict(zip(column_names, row))
-                                result['data'].append(row_dict)
-                            print(f"[Genie] Successfully converted {len(result['data'])} rows to dicts")
+                    # Parse the response - data is wrapped in 'statement_response'
+                    statement_response = query_result_response.get('statement_response', {})
+                    if statement_response:
+                        print(f"[Genie] Found statement_response")
+                        manifest = statement_response.get('manifest', {})
+                        if manifest:
+                            schema = manifest.get('schema', {})
+                            columns = schema.get('columns', [])
+                            column_names = [col.get('name') for col in columns]
+                            print(f"[Genie] Found columns: {column_names}")
+                            
+                            # Get data rows
+                            result_obj = statement_response.get('result', {})
+                            data_array = result_obj.get('data_array', [])
+                            print(f"[Genie] Found {len(data_array)} data rows from Genie API")
+                            
+                            if data_array:
+                                # Convert to list of dicts
+                                result['data'] = []
+                                for row in data_array:
+                                    row_dict = dict(zip(column_names, row))
+                                    result['data'].append(row_dict)
+                                print(f"[Genie] Successfully converted {len(result['data'])} rows to dicts from Genie API")
+                            else:
+                                print(f"[Genie] No data_array in result")
                         else:
-                            print(f"[Genie] No data_array in result")
+                            print(f"[Genie] No manifest in statement_response")
                     else:
-                        print(f"[Genie] No manifest in query result response")
+                        print(f"[Genie] No statement_response in query result response")
                         
                 except Exception as e:
                     print(f"[Genie] Error calling query-result endpoint: {str(e)}")
