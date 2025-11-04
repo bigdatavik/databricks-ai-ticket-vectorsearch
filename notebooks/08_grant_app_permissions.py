@@ -72,6 +72,7 @@ GRANT USE SCHEMA ON SCHEMA {CATALOG}.{SCHEMA} TO `{service_principal_id}`;
 -- Grant table access
 GRANT SELECT ON TABLE {CATALOG}.{SCHEMA}.knowledge_base TO `{service_principal_id}`;
 GRANT SELECT ON TABLE {CATALOG}.{SCHEMA}.sample_tickets TO `{service_principal_id}`;
+GRANT SELECT ON TABLE {CATALOG}.{SCHEMA}.ticket_history TO `{service_principal_id}`;
 
 -- Grant volume access
 GRANT READ VOLUME ON VOLUME {CATALOG}.{SCHEMA}.knowledge_docs TO `{service_principal_id}`;
@@ -195,7 +196,7 @@ print(f"")
 print(f"Granted Access To:")
 print(f"  📁 Catalog: {CATALOG}")
 print(f"  📂 Schema: {SCHEMA}")
-print(f"  📊 Tables: knowledge_base, sample_tickets")
+print(f"  📊 Tables: knowledge_base, sample_tickets, ticket_history")
 print(f"  ⚙️ Functions: ai_classify, ai_extract, ai_gen, quick_classify_ticket")
 print(f"  🗄️ SQL Warehouse: {SQL_WAREHOUSE_ID}")
 print(f"  🔍 Vector Search: {INDEX_NAME}")
