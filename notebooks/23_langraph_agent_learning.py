@@ -203,7 +203,7 @@ def search_knowledge_base(query: str, num_results: int = 3):
             index_name=INDEX_NAME
         ).similarity_search(
             query_text=query,
-            columns=["title", "content", "category"],
+            columns=["doc_id", "doc_type", "title", "content"],
             num_results=num_results
         )
         
@@ -212,10 +212,11 @@ def search_knowledge_base(query: str, num_results: int = 3):
         
         formatted_results = [
             {
-                "title": doc[0],
-                "content": doc[1][:200] + "..." if len(doc[1]) > 200 else doc[1],
-                "category": doc[2],
-                "score": doc[3] if len(doc) > 3 else None
+                "doc_id": doc[0],
+                "doc_type": doc[1],
+                "title": doc[2],
+                "content": doc[3][:200] + "..." if len(doc[3]) > 200 else doc[3],
+                "score": doc[4] if len(doc) > 4 else None
             }
             for doc in docs
         ]
@@ -240,7 +241,7 @@ search_results = search_knowledge_base(search_query)
 print(f"\n📚 Knowledge Base Results ({len(search_results)} documents):")
 for i, doc in enumerate(search_results, 1):
     print(f"\n{i}. 📄 {doc['title']}")
-    print(f"   📂 Category: {doc['category']}")
+    print(f"   📂 Type: {doc['doc_type']}")
     print(f"   📝 Content: {doc['content'][:150]}...")
     if doc.get('score'):
         print(f"   🎯 Score: {doc['score']:.4f}")
