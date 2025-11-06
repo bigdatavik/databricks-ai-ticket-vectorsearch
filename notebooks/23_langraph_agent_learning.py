@@ -690,30 +690,40 @@ def run_agent_test(ticket_text: str, show_reasoning: bool = True):
                 print(f"\n👤 USER:")
                 print(f"   {message.content[:200]}...")
             elif message.type == "ai":
-                content = message.content
+                content = message.content or ""
                 # Check if this is a tool call or final answer
                 if hasattr(message, 'tool_calls') and message.tool_calls:
                     print(f"\n🤖 AGENT THOUGHT & ACTION:")
-                    print(f"   {content[:300]}...")
+                    if content:
+                        print(f"   {content[:300]}...")
                     for tool_call in message.tool_calls:
                         print(f"   🔧 Calling tool: {tool_call['name']}")
                         print(f"   📥 Input: {str(tool_call['args'])[:150]}...")
                 else:
                     print(f"\n🤖 AGENT FINAL ANSWER:")
-                    print(f"   {content[:500]}...")
+                    if content:
+                        print(f"   {content[:500]}...")
+                    else:
+                        print(f"   (No answer generated)")
             elif hasattr(message, 'name'):  # Tool message
                 print(f"\n📤 TOOL RESULT ({message.name}):")
-                result_preview = message.content[:200] if len(message.content) > 200 else message.content
-                print(f"   {result_preview}...")
+                if message.content:
+                    result_preview = message.content[:200] if len(message.content) > 200 else message.content
+                    print(f"   {result_preview}...")
+                else:
+                    print(f"   (No content)")
     
     # Count tools used
-    tool_messages = [m for m in result['messages'] if hasattr(m, 'name')]
-    tools_used = list(set([m.name for m in tool_messages]))
+    tool_messages = [m for m in result['messages'] if hasattr(m, 'name') and m.name]
+    tools_used = list(set([m.name for m in tool_messages if m.name]))
     
     print("\n" + "=" * 80)
     print(f"📊 SUMMARY:")
     print(f"   ⏱️  Time: {elapsed_time:.2f}s")
-    print(f"   🧰 Tools used: {len(tools_used)}/4 - {', '.join(tools_used)}")
+    if tools_used:
+        print(f"   🧰 Tools used: {len(tools_used)}/4 - {', '.join(tools_used)}")
+    else:
+        print(f"   🧰 Tools used: 0/4")
     print("=" * 80 + "\n")
     
     return result
