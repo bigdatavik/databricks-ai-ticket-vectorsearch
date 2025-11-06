@@ -66,11 +66,11 @@ print(f"👤 Current user: {w.current_user.me().user_name}")
 
 # COMMAND ----------
 
-# Configuration (same as dashboard)
-CATALOG = "vik_catalog"
-SCHEMA = "ai_ticket_classification"
+# Configuration (same as dashboard and databricks.yml)
+CATALOG = "classify_tickets_new_dev"
+SCHEMA = "support_ai"
 WAREHOUSE_ID = "148ccb90800933a1"
-INDEX_NAME = f"{CATALOG}.{SCHEMA}.kb_docs_index"
+INDEX_NAME = f"{CATALOG}.{SCHEMA}.knowledge_base_index"
 GENIE_SPACE_ID = "01f0b91aa91c1b0c8cce6529ea09f0a8"
 LLM_ENDPOINT = "databricks-meta-llama-3-3-70b-instruct"
 
