@@ -523,6 +523,21 @@ print("=" * 80)
 print("CREATING LANGCHAIN TOOLS")
 print("=" * 80)
 
+# Define Pydantic schemas for tool inputs (fixes LLM parameter naming issues)
+from pydantic import BaseModel, Field
+
+class ClassifyTicketInput(BaseModel):
+    ticket_text: str = Field(description="The support ticket text to classify")
+
+class ExtractMetadataInput(BaseModel):
+    ticket_text: str = Field(description="The support ticket text to extract metadata from")
+
+class SearchKnowledgeInput(BaseModel):
+    query: str = Field(description="The search query to find relevant documentation")
+
+class QueryHistoricalInput(BaseModel):
+    question: str = Field(description="Natural language question about historical tickets")
+
 # Tool 1: Classification
 def classify_ticket_wrapper(ticket_text: str) -> str:
     """Wrapper for ai_classify UC Function"""
@@ -536,7 +551,8 @@ classify_tool = Tool(
     Use this FIRST to understand what type of ticket you're dealing with.
     
     Returns: JSON with category, priority, team, confidence scores.""",
-    func=classify_ticket_wrapper
+    func=classify_ticket_wrapper,
+    args_schema=ClassifyTicketInput
 )
 print("✅ Tool 1: classify_ticket")
 
@@ -553,7 +569,8 @@ extract_tool = Tool(
     Use this for complex technical issues that need detailed analysis.
     
     Returns: JSON with priority_score, urgency, systems, details.""",
-    func=extract_metadata_wrapper
+    func=extract_metadata_wrapper,
+    args_schema=ExtractMetadataInput
 )
 print("✅ Tool 2: extract_metadata")
 
@@ -570,7 +587,8 @@ search_tool = Tool(
     troubleshooting steps, or existing documentation about the ticket's topic.
     
     Returns: JSON array with title, content, category for top matches.""",
-    func=search_knowledge_wrapper
+    func=search_knowledge_wrapper,
+    args_schema=SearchKnowledgeInput
 )
 print("✅ Tool 3: search_knowledge")
 
@@ -589,7 +607,8 @@ genie_tool = Tool(
     Ask questions like: 'Show me resolved tickets about X' or 'Find similar cases to Y'.
     
     Returns: JSON with text summary and optionally SQL query used.""",
-    func=query_historical_wrapper
+    func=query_historical_wrapper,
+    args_schema=QueryHistoricalInput
 )
 print("✅ Tool 4: query_historical")
 
