@@ -326,8 +326,8 @@ class GenieConversationTool:
     
     def query(self, question: str):
         """
-        Complete Genie query workflow: start → poll → extract results
-        Returns structured results or error message.
+        Complete Genie query workflow: start → poll → extract results → fetch data
+        Returns structured results with actual data rows or error message.
         """
         print(f"\n[Genie] === Starting Genie Query ===")
         print(f"[Genie] Question: {question[:100]}...")
@@ -358,7 +358,7 @@ class GenieConversationTool:
             print(f"[Genie] {error_msg}")
             return {"error": error_msg}
         
-        # Step 3: Extract results
+        # Step 3: Extract results from poll response
         response = poll_result['response']
         text_content = response.get('content', '')
         attachments = response.get('attachments', [])
@@ -373,14 +373,107 @@ class GenieConversationTool:
             "message_id": message_id
         }
         
-        # Extract SQL query if available
+        # Step 4: Extract SQL query and attachment_id
         if attachments:
             attachment = attachments[0]
+            
+            # CRITICAL: Field is 'attachment_id', NOT 'id'!
+            attachment_id = attachment.get('attachment_id') or attachment.get('id')
+            print(f"[Genie] Attachment ID: {attachment_id}")
+            
+            # Extract SQL query
             query_obj = attachment.get('query', {})
             if isinstance(query_obj, dict):
                 result['query'] = query_obj.get('query') or query_obj.get('content')
                 if result['query']:
                     print(f"[Genie] Extracted SQL: {result['query'][:100]}...")
+            
+            # Step 5: Fetch actual data using query-result endpoint
+            if attachment_id:
+                print(f"[Genie] Calling query-result endpoint...")
+                try:
+                    query_result_response = self.w.api_client.do(
+                        'GET',
+                        f'/api/2.0/genie/spaces/{self.space_id}/conversations/{conversation_id}/messages/{message_id}/query-result/{attachment_id}'
+                    )
+                    
+                    # Parse response - data is wrapped in 'statement_response'
+                    statement_response = query_result_response.get('statement_response', {})
+                    if statement_response:
+                        print(f"[Genie] Found statement_response")
+                        manifest = statement_response.get('manifest', {})
+                        if manifest:
+                            schema = manifest.get('schema', {})
+                            columns = schema.get('columns', [])
+                            column_names = [col.get('name') for col in columns]
+                            print(f"[Genie] Found columns: {column_names}")
+                            
+                            # Get data rows
+                            result_obj = statement_response.get('result', {})
+                            data_array = result_obj.get('data_array', [])
+                            print(f"[Genie] Found {len(data_array)} data rows from Genie API")
+                            
+                            if data_array:
+                                # Convert to list of dicts
+                                result['data'] = []
+                                for row in data_array:
+                                    row_dict = dict(zip(column_names, row))
+                                    result['data'].append(row_dict)
+                                print(f"[Genie] ✅ Successfully converted {len(result['data'])} rows")
+                            else:
+                                print(f"[Genie] No data_array in result")
+                        else:
+                            print(f"[Genie] No manifest in statement_response")
+                    else:
+                        print(f"[Genie] No statement_response in query result response")
+                        
+                except Exception as e:
+                    print(f"[Genie] Error calling query-result endpoint: {str(e)}")
+        
+        # Step 6: FALLBACK - Execute SQL directly if we have query but no data
+        if result.get('query') and not result.get('data'):
+            print(f"[Genie] FALLBACK: No data from Genie API, executing SQL directly...")
+            result['used_fallback'] = True
+            try:
+                from databricks.sdk.service.sql import StatementState
+                
+                execute_response = self.w.statement_execution.execute_statement(
+                    warehouse_id=WAREHOUSE_ID,
+                    statement=result['query'],
+                    wait_timeout='30s'
+                )
+                
+                print(f"[Genie] Fallback execution status: {execute_response.status.state}")
+                
+                if execute_response.status.state == StatementState.SUCCEEDED:
+                    columns = execute_response.manifest.schema.columns if execute_response.manifest and execute_response.manifest.schema else []
+                    column_names = [col.name for col in columns]
+                    print(f"[Genie] Fallback found columns: {column_names}")
+                    
+                    if execute_response.result and execute_response.result.data_array:
+                        data_array = execute_response.result.data_array
+                        print(f"[Genie] Fallback found {len(data_array)} data rows")
+                        
+                        result['data'] = []
+                        for row in data_array:
+                            row_dict = dict(zip(column_names, row))
+                            result['data'].append(row_dict)
+                        print(f"[Genie] ✅ Fallback successfully converted {len(result['data'])} rows")
+                else:
+                    error_msg = execute_response.status.error.message if execute_response.status.error else "Unknown error"
+                    print(f"[Genie] Fallback execution failed: {error_msg}")
+            except Exception as e:
+                print(f"[Genie] Fallback execution error: {str(e)}")
+        
+        print(f"[Genie] Final data rows extracted: {len(result.get('data') or [])}")
+        
+        # Determine which method was used
+        if result.get('data'):
+            if result.get('used_fallback'):
+                result['method'] = 'Direct SQL Execution (Fallback)'
+            else:
+                result['method'] = 'Genie query-result API'
+            print(f"[Genie] Method: {result['method']}")
         
         print(f"[Genie] === Genie Query Complete ===\n")
         return result
@@ -400,8 +493,16 @@ print(f"\n🤖 Genie Result:")
 print(f"  📝 Text Response: {genie_result.get('text', '')[:300]}...")
 if genie_result.get('query'):
     print(f"  🔍 Generated SQL: {genie_result['query'][:200]}...")
-if genie_result.get('error'):
+if genie_result.get('data'):
+    print(f"  📊 Data Rows: {len(genie_result['data'])}")
+    print(f"  🔧 Method: {genie_result.get('method', 'Unknown')}")
+    print(f"\n  Sample rows:")
+    for i, row in enumerate(genie_result['data'][:3], 1):
+        print(f"    {i}. {row}")
+elif genie_result.get('error'):
     print(f"  ❌ Error: {genie_result['error']}")
+else:
+    print(f"  ⚠️ No data returned (query generated but data not fetched)")
 
 # COMMAND ----------
 
