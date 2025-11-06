@@ -652,15 +652,21 @@ Think step-by-step, explain your reasoning, and make smart decisions about which
 
 llm = ChatDatabricks(
     endpoint=LLM_ENDPOINT,
-    temperature=0.1
-).bind(system=system_prompt)
+    temperature=0.3,  # Increased from 0.1 to avoid deterministic formatting errors
+    max_tokens=4096
+)
 print(f"✅ LLM initialized: {LLM_ENDPOINT}")
+
+# Bind tools and system prompt to LLM
+# Note: Binding tools explicitly helps the model with function calling format
+tools_list = [classify_tool, extract_tool, search_tool, genie_tool]
+llm_with_tools = llm.bind_tools(tools_list).bind(system=system_prompt)
 
 # Create ReAct agent with all 4 tools
 # Note: create_react_agent signature changed - no longer accepts state_modifier
 agent = create_react_agent(
-    model=llm,
-    tools=[classify_tool, extract_tool, search_tool, genie_tool]
+    model=llm_with_tools,
+    tools=tools_list
 )
 
 print(f"✅ LangGraph ReAct Agent created!")
