@@ -2095,12 +2095,162 @@ agent = create_react_agent(
 **Impact:** TypeError on agent creation
 **Lesson:** LangGraph v1.0 changed API - system prompts now bound to LLM, not agent
 
+#### Error #5: Incorrect Catalog/Schema Names
+**Problem:** Notebook configured with wrong catalog/schema names (copied from old config)
+```python
+# ❌ Wrong (old values)
+CATALOG = "vik_catalog"
+SCHEMA = "ai_ticket_classification"
+
+# ✅ Correct (matches databricks.yml)
+CATALOG = "classify_tickets_new_dev"
+SCHEMA = "support_ai"
+```
+
+**Impact:** All UC Functions failed with `[UNRESOLVED_ROUTINE]` errors
+**Lesson:** Always verify catalog/schema match `databricks.yml` configuration
+
+#### Error #6: Vector Search Column Mismatch
+**Problem:** Requested columns didn't match actual index schema
+```python
+# ❌ Wrong (old schema)
+results = vsc.get_index(index_name).similarity_search(
+    query_text=query,
+    columns=["title", "content", "category"],  # 'category' doesn't exist!
+    num_results=3
+)
+
+# ✅ Correct (actual schema)
+results = vsc.get_index(index_name).similarity_search(
+    query_text=query,
+    columns=["doc_id", "doc_type", "title", "content"],
+    num_results=3
+)
+```
+
+**Impact:** Vector Search failed with "Requested columns not present in index"
+**Lesson:** Verify index schema before querying (use `w.vector_search_indexes.get_index()` to inspect)
+
+#### Error #7: Genie Not Fetching Data (attachment_id extraction)
+**Problem:** Same issue as dashboard - `attachment_id` field name confusion
+```python
+# ❌ Wrong (looking for 'id')
+attachment_id = attachment.get('id')
+
+# ✅ Correct (field is 'attachment_id', not 'id')
+attachment_id = attachment.get('attachment_id') or attachment.get('id')
+```
+
+**Impact:** Genie generated SQL but didn't fetch actual data rows
+**Lesson:** Microsoft Genie API uses `attachment_id` field (not `id`), AND response is wrapped in `statement_response`
+
+#### Error #8: Agent Test Runner None-Safety
+**Problem:** `message.content` and `m.name` could be `None`, causing `TypeError`
+```python
+# ❌ Wrong (no None checks)
+content_preview = message.content[:200]
+tools_used = [m.name for m in result['messages'] if hasattr(m, 'name')]
+
+# ✅ Correct (None-safe)
+content = message.content or ""
+content_preview = content[:200] if len(content) > 200 else content
+tools_used = [m.name for m in result['messages'] if hasattr(m, 'name') and m.name]
+```
+
+**Impact:** Test runner crashed with "TypeError: sequence item 0: expected str instance, NoneType found"
+**Lesson:** Always handle `None` values when processing LLM messages
+
+#### Error #9: LLM Generating Generic `__arg1` Parameters
+**Problem:** LLM used generic parameter names instead of actual tool parameter names
+```
+# Error message:
+BadRequestError: 400 - Model response did not respect the required format.
+Model Output: <function=search_knowledge>{"__arg1": "database connection timeout"}</function>
+
+Expected: {"query": "database connection timeout"}
+Actual:   {"__arg1": "database connection timeout"}
+```
+
+**Root Cause:** Tools didn't have explicit argument schemas, so LLM couldn't determine correct parameter names
+
+**Solution:** Add Pydantic `args_schema` to each tool:
+```python
+from pydantic import BaseModel, Field
+
+# Define explicit schemas
+class SearchKnowledgeInput(BaseModel):
+    query: str = Field(description="The search query to find relevant documentation")
+
+# Bind schema to tool
+search_tool = Tool(
+    name="search_knowledge",
+    description="Searches the knowledge base...",
+    func=search_knowledge_wrapper,
+    args_schema=SearchKnowledgeInput  # ← This guides the LLM!
+)
+```
+
+**Impact:** All tool calls failed after first two tools (classification worked by luck before validation)
+**Lesson:** **ALWAYS define `args_schema` for LangChain Tools** - it's the LLM's schema reference
+
+#### Error #10: LLM Generating Malformed JSON (Wrong Closing Bracket)
+**Problem:** Even with Pydantic schemas, LLM generated malformed JSON
+```
+# Error message:
+BadRequestError: 400 - Model response did not respect the required format.
+Model Output: <function=search_knowledge>{"query": "database connection timeout")</function>
+                                                                                ^
+                                                                                Wrong! Should be }
+```
+
+**Root Cause #1:** Temperature too low (0.1) caused deterministic formatting errors
+
+**Root Cause #2:** `databricks-meta-llama-3-3-70b-instruct` doesn't have strong function calling support
+
+**Solution:**
+```python
+# 1. Increase temperature
+llm = ChatDatabricks(
+    endpoint=LLM_ENDPOINT,
+    temperature=0.3,  # Up from 0.1
+    max_tokens=4096
+)
+
+# 2. Use explicit tool binding
+tools_list = [classify_tool, extract_tool, search_tool, genie_tool]
+llm_with_tools = llm.bind_tools(tools_list).bind(system=system_prompt)
+
+agent = create_react_agent(
+    model=llm_with_tools,
+    tools=tools_list
+)
+
+# 3. Switch to DBRX model (better function calling support)
+LLM_ENDPOINT = "databricks-dbrx-instruct"  # Databricks' own model
+```
+
+**Why DBRX?**
+- Native Databricks model, optimized for function calling
+- Extensively tested with LangChain patterns
+- Better JSON formatting reliability than Llama 3.3
+
+**Impact:** All tool calls after classification failed with JSON parse errors
+**Lesson:** 
+  - **Model selection matters for function calling** - not all LLMs handle it well
+  - **Use `.bind_tools()`** explicitly for better formatting
+  - **Temperature 0.1-0.3** is the sweet spot (too low = deterministic errors)
+
 ### Implementation Pattern
 
 #### LangChain Tool Wrapper Structure
 
 ```python
 from langchain_core.tools import Tool
+from pydantic import BaseModel, Field
+
+# IMPORTANT: Define Pydantic schema for tool inputs (guides LLM parameter naming)
+class ClassifyTicketInput(BaseModel):
+    ticket_text: str = Field(description="The support ticket text to classify")
 
 # Pattern: Wrap existing APIs as Tools
 def classify_ticket_wrapper(ticket_text: str) -> str:
@@ -2110,18 +2260,16 @@ def classify_ticket_wrapper(ticket_text: str) -> str:
 
 classify_tool = Tool(
     name="classify_ticket",
-    description="""DETAILED description is CRITICAL - this guides the agent!
-    
-    Classifies a support ticket into category (Technical, Account, Feature Request), 
-    priority (Critical, High, Medium, Low), and routing team. 
-    Use this FIRST to understand what type of ticket you're dealing with.
-    
-    Returns: JSON with category, priority, team, confidence scores.""",
-    func=classify_ticket_wrapper
+    description="Classifies a support ticket into category, priority, and routing team. Use this FIRST to understand the ticket type. Returns JSON with category, priority, team, confidence.",
+    func=classify_ticket_wrapper,
+    args_schema=ClassifyTicketInput  # ← CRITICAL: Tells LLM exact parameter names!
 )
 ```
 
-**Key Lesson:** Tool descriptions are agent's only guidance - be specific and directive!
+**Key Lessons:** 
+- **Tool descriptions guide agent decisions** - be specific and directive
+- **`args_schema` is mandatory** - without it, LLM generates generic `__arg1` parameters
+- **Keep descriptions single-line** - reduces LLM confusion with JSON formatting
 
 #### LangGraph Agent Creation
 
@@ -2138,14 +2286,19 @@ Guidelines:
 4. Be efficient but thorough - only use tools that add value"""
 
 llm = ChatDatabricks(
-    endpoint="databricks-meta-llama-3-3-70b-instruct",
-    temperature=0.1
-).bind(system=system_prompt)
+    endpoint="databricks-dbrx-instruct",  # Better function calling than Llama
+    temperature=0.3,  # Higher than 0.1 to avoid deterministic errors
+    max_tokens=4096
+)
+
+# Bind tools explicitly for better function calling
+tools_list = [classify_tool, extract_tool, search_tool, genie_tool]
+llm_with_tools = llm.bind_tools(tools_list).bind(system=system_prompt)
 
 # Create agent with all tools
 agent = create_react_agent(
-    model=llm,
-    tools=[classify_tool, extract_tool, search_tool, genie_tool]
+    model=llm_with_tools,
+    tools=tools_list
 )
 
 # Invoke agent
