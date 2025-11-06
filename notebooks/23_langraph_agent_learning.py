@@ -27,7 +27,10 @@
 
 # COMMAND ----------
 
-%pip install langgraph langchain langchain-core databricks-langchain backoff databricks-sdk mlflow databricks-vectorsearch --quiet
+# MAGIC %pip install langgraph langchain langchain-core databricks-langchain backoff databricks-sdk mlflow databricks-vectorsearch --quiet
+
+# COMMAND ----------
+
 dbutils.library.restartPython()
 
 # COMMAND ----------
