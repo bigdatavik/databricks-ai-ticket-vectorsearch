@@ -43,7 +43,7 @@ dbutils.library.restartPython()
 from databricks.sdk import WorkspaceClient
 from databricks_langchain import ChatDatabricks
 from databricks.vector_search.client import VectorSearchClient
-from langchain.tools import Tool
+from langchain_core.tools import Tool
 from langgraph.prebuilt import create_react_agent
 import os
 import json
@@ -98,31 +98,56 @@ print(f"  🧠 LLM Endpoint: {LLM_ENDPOINT}")
 
 def call_uc_function(function_name: str, parameters: dict):
     """
-    Call a UC function using WorkspaceClient.
-    Same pattern as dashboard - directly portable!
+    Call a UC function using Statement Execution API (same as dashboard).
+    This is more reliable for Databricks Apps and notebooks.
     """
     try:
-        function_full_name = f"{CATALOG}.{SCHEMA}.{function_name}"
+        from databricks.sdk.service.sql import StatementState
         
-        print(f"🔧 Calling UC Function: {function_full_name}")
+        print(f"🔧 Calling UC Function: {CATALOG}.{SCHEMA}.{function_name}")
         
-        response = w.functions.execute(
-            name=function_full_name,
-            arguments=[{"name": k, "value": json.dumps(v)} for k, v in parameters.items()]
+        # Build SQL query with parameters
+        param_values = []
+        for key, value in parameters.items():
+            if isinstance(value, str):
+                # Escape single quotes
+                escaped = value.replace("'", "''")
+                param_values.append(f"'{escaped}'")
+            else:
+                param_values.append(str(value))
+        
+        args_str = ', '.join(param_values)
+        query = f"SELECT {CATALOG}.{SCHEMA}.{function_name}({args_str}) as result"
+        
+        print(f"  📝 SQL: {query[:100]}...")
+        
+        # Execute via Statement Execution API
+        response = w.statement_execution.execute_statement(
+            warehouse_id=WAREHOUSE_ID,
+            statement=query,
+            wait_timeout='30s'
         )
         
-        if response.error:
-            error_msg = f"UC Function Error: {response.error.error_message}"
+        if response.status.state == StatementState.SUCCEEDED:
+            # Extract result from response
+            if response.result and response.result.data_array:
+                result_json = response.result.data_array[0][0]
+                result = json.loads(result_json) if isinstance(result_json, str) else result_json
+                print(f"✅ UC Function result received")
+                return result
+            else:
+                print(f"❌ No data in response")
+                return {"error": "No data returned"}
+        else:
+            error_msg = response.status.error.message if response.status.error else "Unknown error"
             print(f"❌ {error_msg}")
             return {"error": error_msg}
-        
-        result = json.loads(response.value) if response.value else {}
-        print(f"✅ UC Function result received")
-        return result
         
     except Exception as e:
         error_msg = f"Exception calling UC function: {str(e)}"
         print(f"❌ {error_msg}")
+        import traceback
+        traceback.print_exc()
         return {"error": error_msg}
 
 # COMMAND ----------
@@ -171,7 +196,8 @@ def search_knowledge_base(query: str, num_results: int = 3):
     try:
         print(f"🔍 Searching knowledge base: '{query[:50]}...'")
         
-        vsc = VectorSearchClient(workspace_client=w)
+        # Initialize VectorSearchClient (uses workspace client from environment)
+        vsc = VectorSearchClient()
         
         results = vsc.get_index(
             index_name=INDEX_NAME
@@ -486,14 +512,7 @@ print("=" * 80)
 print("CREATING LANGGRAPH REACT AGENT")
 print("=" * 80)
 
-# Initialize LLM
-llm = ChatDatabricks(
-    endpoint=LLM_ENDPOINT,
-    temperature=0.1
-)
-print(f"✅ LLM initialized: {LLM_ENDPOINT}")
-
-# System prompt for the agent
+# Initialize LLM with system prompt
 system_prompt = """You are an intelligent support ticket analysis assistant.
 
 Your goal is to efficiently gather the RIGHT information to help resolve 
@@ -510,11 +529,17 @@ GUIDELINES:
 Think step-by-step, explain your reasoning, and make smart decisions about which tools to use.
 """
 
+llm = ChatDatabricks(
+    endpoint=LLM_ENDPOINT,
+    temperature=0.1
+).bind(system=system_prompt)
+print(f"✅ LLM initialized: {LLM_ENDPOINT}")
+
 # Create ReAct agent with all 4 tools
+# Note: create_react_agent signature changed - no longer accepts state_modifier
 agent = create_react_agent(
-    llm,
-    tools=[classify_tool, extract_tool, search_tool, genie_tool],
-    state_modifier=system_prompt
+    model=llm,
+    tools=[classify_tool, extract_tool, search_tool, genie_tool]
 )
 
 print(f"✅ LangGraph ReAct Agent created!")
