@@ -72,7 +72,8 @@ SCHEMA = "support_ai"
 WAREHOUSE_ID = "148ccb90800933a1"
 INDEX_NAME = f"{CATALOG}.{SCHEMA}.knowledge_base_index"
 GENIE_SPACE_ID = "01f0b91aa91c1b0c8cce6529ea09f0a8"
-LLM_ENDPOINT = "databricks-meta-llama-3-3-70b-instruct"
+# Using DBRX instead - better function calling support than Llama
+LLM_ENDPOINT = "databricks-dbrx-instruct"
 
 print("✅ Configuration loaded")
 print(f"  📚 Catalog: {CATALOG}")
@@ -546,11 +547,7 @@ def classify_ticket_wrapper(ticket_text: str) -> str:
 
 classify_tool = Tool(
     name="classify_ticket",
-    description="""Classifies a support ticket into category (Technical, Account, Feature Request), 
-    priority (Critical, High, Medium, Low), and routing team. 
-    Use this FIRST to understand what type of ticket you're dealing with.
-    
-    Returns: JSON with category, priority, team, confidence scores.""",
+    description="Classifies a support ticket into category, priority, and routing team. Use this FIRST to understand the ticket type. Returns JSON with category, priority, team, confidence.",
     func=classify_ticket_wrapper,
     args_schema=ClassifyTicketInput
 )
@@ -564,11 +561,7 @@ def extract_metadata_wrapper(ticket_text: str) -> str:
 
 extract_tool = Tool(
     name="extract_metadata",
-    description="""Extracts structured metadata from ticket: priority score (1-10), 
-    urgency indicators, affected systems, technical details, and key entities.
-    Use this for complex technical issues that need detailed analysis.
-    
-    Returns: JSON with priority_score, urgency, systems, details.""",
+    description="Extracts structured metadata from ticket including priority score, urgency indicators, affected systems, and technical details. Use for complex technical issues. Returns JSON with priority_score, urgency, systems, details.",
     func=extract_metadata_wrapper,
     args_schema=ExtractMetadataInput
 )
@@ -582,11 +575,7 @@ def search_knowledge_wrapper(query: str) -> str:
 
 search_tool = Tool(
     name="search_knowledge",
-    description="""Searches the knowledge base for relevant articles, documentation, 
-    and solutions using semantic search. Use this when you need to find how-to guides, 
-    troubleshooting steps, or existing documentation about the ticket's topic.
-    
-    Returns: JSON array with title, content, category for top matches.""",
+    description="Searches the knowledge base for relevant articles, documentation, and solutions using semantic search. Use to find how-to guides, troubleshooting steps, or existing documentation. Returns JSON array with title, content, category for top matches.",
     func=search_knowledge_wrapper,
     args_schema=SearchKnowledgeInput
 )
@@ -601,12 +590,7 @@ def query_historical_wrapper(question: str) -> str:
 
 genie_tool = Tool(
     name="query_historical",
-    description="""Queries historical resolved tickets using natural language to find 
-    similar cases and their resolutions. Use this for complex issues where past 
-    solutions might help, or to find resolution patterns and time estimates.
-    Ask questions like: 'Show me resolved tickets about X' or 'Find similar cases to Y'.
-    
-    Returns: JSON with text summary and optionally SQL query used.""",
+    description="Queries historical resolved tickets using natural language to find similar cases and their resolutions. Use for complex issues where past solutions might help. Returns JSON with text summary and optionally SQL query used.",
     func=query_historical_wrapper,
     args_schema=QueryHistoricalInput
 )
