@@ -456,11 +456,11 @@ try:
     def create_langraph_agent():
         """Create the LangGraph ReAct agent with all tools"""
         try:
-            # Use DBRX for better function calling support
-            # Note: LLM_ENDPOINT is from env, but we override for agent to use DBRX
-            agent_endpoint = "databricks-dbrx-instruct"  # Best for function calling
+            # Use Meta Llama 3.3 70B for function calling support
+            # This is the best available model in the workspace for tool calling
+            agent_endpoint = "databricks-meta-llama-3-3-70b-instruct"
             
-            # Initialize LLM with DBRX (better function calling support)
+            # Initialize LLM with Llama 3.3 70B (good function calling support)
             llm = ChatDatabricks(
                 endpoint=agent_endpoint,
                 temperature=0.1,  # Small temp for more reliable tool calls
