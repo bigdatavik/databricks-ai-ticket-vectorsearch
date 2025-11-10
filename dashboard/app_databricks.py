@@ -362,6 +362,123 @@ def get_genie_tool():
 
 genie_tool = get_genie_tool()
 
+# ===== LANGCHAIN TOOLS FOR LANGRAPH AGENT =====
+try:
+    from langchain_core.tools import Tool
+    from pydantic import BaseModel, Field
+    from langgraph.prebuilt import create_react_agent
+    from langchain_core.messages import SystemMessage
+    from databricks_langchain import ChatDatabricks
+    
+    LANGCHAIN_AVAILABLE = True
+    
+    # Tool input schemas
+    class ClassifyTicketInput(BaseModel):
+        ticket_text: str = Field(description="The support ticket text to classify")
+    
+    class ExtractMetadataInput(BaseModel):
+        ticket_text: str = Field(description="The support ticket text to extract metadata from")
+    
+    class SearchKnowledgeInput(BaseModel):
+        query: str = Field(description="The search query to find relevant documentation")
+    
+    class QueryHistoricalInput(BaseModel):
+        question: str = Field(description="Natural language question about historical tickets")
+    
+    # Tool wrapper functions
+    def classify_ticket_wrapper(ticket_text: str) -> str:
+        """Classifies a support ticket into category, priority, and routing team"""
+        result = call_uc_function("ai_classify", ticket_text, show_debug=False)
+        import json
+        return json.dumps(result, indent=2) if result else json.dumps({"error": "Classification failed"})
+    
+    def extract_metadata_wrapper(ticket_text: str) -> str:
+        """Extracts detailed metadata from a support ticket"""
+        result = call_uc_function("ai_extract", ticket_text, show_debug=False)
+        import json
+        return json.dumps(result, indent=2) if result else json.dumps({"error": "Extraction failed"})
+    
+    def search_knowledge_wrapper(query: str) -> str:
+        """Searches the knowledge base for relevant articles and documentation"""
+        results = query_vector_search(query, num_results=3)
+        if results:
+            formatted = []
+            for row in results:
+                formatted.append({
+                    "doc_id": row[0],
+                    "doc_type": row[1],
+                    "title": row[2],
+                    "content": row[3][:500]  # Truncate for agent
+                })
+            import json
+            return json.dumps(formatted, indent=2)
+        return json.dumps([])
+    
+    def query_historical_wrapper(question: str) -> str:
+        """Queries historical resolved tickets using natural language"""
+        if not genie_tool:
+            return json.dumps({"error": "Genie tool not available"})
+        result = genie_tool.query(question)
+        import json
+        return json.dumps(result, indent=2, default=str)
+    
+    # Create LangChain Tools
+    classify_tool = Tool(
+        name="classify_ticket",
+        description="Classifies a support ticket into category, priority, and routing team. Use this FIRST to understand the ticket type. Returns JSON with category, priority, team, confidence.",
+        func=classify_ticket_wrapper,
+        args_schema=ClassifyTicketInput
+    )
+    
+    extract_tool = Tool(
+        name="extract_metadata",
+        description="Extracts detailed metadata from ticket including priority score, urgency level, affected systems, technical keywords, and user impact. Use after classification to get deeper insights. Returns JSON with structured metadata.",
+        func=extract_metadata_wrapper,
+        args_schema=ExtractMetadataInput
+    )
+    
+    search_tool = Tool(
+        name="search_knowledge",
+        description="Searches the knowledge base for relevant articles, documentation, and solutions using semantic search. Use to find how-to guides, troubleshooting steps, or existing documentation. Returns JSON array with title, content, category for top matches.",
+        func=search_knowledge_wrapper,
+        args_schema=SearchKnowledgeInput
+    )
+    
+    genie_tool_langchain = Tool(
+        name="query_historical",
+        description="Queries historical resolved tickets using natural language to find similar cases and their resolutions. Use for complex issues where past solutions might help. Returns JSON with text summary and optionally SQL query used.",
+        func=query_historical_wrapper,
+        args_schema=QueryHistoricalInput
+    )
+    
+    # LangGraph Agent creation
+    @st.cache_resource
+    def create_langraph_agent():
+        """Create the LangGraph ReAct agent with all tools"""
+        try:
+            # Initialize LLM
+            llm = ChatDatabricks(
+                endpoint=LLM_ENDPOINT,
+                temperature=0.0,
+                max_tokens=2000
+            )
+            
+            # Create agent with all tools
+            tools_list = [classify_tool, extract_tool, search_tool, genie_tool_langchain]
+            agent = create_react_agent(
+                model=llm,
+                tools=tools_list
+            )
+            
+            return agent
+        except Exception as e:
+            st.error(f"Error creating agent: {e}")
+            return None
+    
+except ImportError as e:
+    LANGCHAIN_AVAILABLE = False
+    st.warning(f"LangChain/LangGraph not available: {e}")
+
 def query_vector_search(query_text, num_results=3):
     """
     Query Vector Search using WorkspaceClient's API client (handles OAuth automatically).
@@ -610,7 +727,7 @@ with st.sidebar:
     st.caption("💰 Cost per ticket: <$0.002\n⏱️ Processing time: <3s")
 
 # Tabs
-tab1, tab2, tab3, tab4 = st.tabs(["🚀 Quick Classify", "📋 6-Phase Classification", "📊 Batch Processing", "🤖 AI Agent Assistant"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["🚀 Quick Classify", "📋 6-Phase Classification", "📊 Batch Processing", "🤖 AI Agent Assistant", "🧠 LangGraph Agent"])
 
 with tab1:
     st.header("Quick Classification (Single Function Call)")
@@ -1240,7 +1357,249 @@ with tab4:
             with col2:
                 st.caption(f"💰 Estimated cost: $0.002 | ⏱️ Total time: {total_elapsed:.0f}ms | 🤖 4 AI agents coordinated")
 
+with tab5:
+    st.header("🧠 LangGraph ReAct Agent")
+    st.markdown("""
+    **Intelligent Agent:** Uses LangGraph's ReAct (Reasoning + Acting) pattern to:
+    - 🧠 **Think** about which tools to use
+    - 🔧 **Act** by calling the right tools
+    - 🔄 **Observe** the results and decide next steps
+    - 🎯 **Adapt** its strategy based on ticket complexity
+    
+    **Key Difference:** Unlike the multi-agent tab which runs all tools sequentially, 
+    this agent intelligently chooses which tools to use and in what order.
+    """)
+    
+    if not LANGCHAIN_AVAILABLE:
+        st.error("❌ LangChain/LangGraph not available. Please install required packages.")
+        st.code("pip install langgraph>=1.0.0 langchain>=0.3.0 langchain-core>=0.3.0 databricks-langchain")
+    else:
+        # Ticket input
+        st.markdown("---")
+        st.subheader("Enter Support Ticket")
+        
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            sample_choice_langraph = st.selectbox(
+                "Select a sample ticket or write your own:", 
+                ["Custom"] + list(SAMPLE_TICKETS.keys()), 
+                key="langraph_sample"
+            )
+        
+        if sample_choice_langraph == "Custom":
+            ticket_text_langraph = st.text_area(
+                "Ticket Description:", 
+                height=200, 
+                value="",
+                key="langraph_text",
+                placeholder="Describe the issue in detail..."
+            )
+        else:
+            ticket_text_langraph = st.text_area(
+                "Ticket Description:", 
+                height=200, 
+                value=SAMPLE_TICKETS[sample_choice_langraph],
+                key="langraph_text_filled"
+            )
+        
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            analyze_button_langraph = st.button("🧠 Analyze with LangGraph Agent", type="primary", key="langraph_analyze_btn")
+        
+        if analyze_button_langraph:
+            if not ticket_text_langraph.strip():
+                st.warning("⚠️ Please enter a ticket description")
+            else:
+                st.markdown("---")
+                st.markdown("### 🤖 Agent Execution")
+                
+                total_start = time.time()
+                
+                # Create agent
+                agent = create_langraph_agent()
+                
+                if not agent:
+                    st.error("Failed to create LangGraph agent")
+                else:
+                    # System prompt
+                    system_prompt = """You are an expert IT support ticket analyst. 
+                    
+Your job is to analyze support tickets and provide comprehensive recommendations.
+
+Available tools:
+1. classify_ticket - Use FIRST to understand ticket category, priority, and routing
+2. extract_metadata - Use to get detailed metadata (affected systems, keywords, etc.)
+3. search_knowledge - Use to find relevant documentation and solutions
+4. query_historical - Use to find similar resolved tickets (optional, for complex issues)
+
+Strategy:
+- ALWAYS start with classify_ticket
+- For P1/P2 tickets: Use all tools for comprehensive analysis
+- For P3 tickets: Use classify_ticket + extract_metadata (skip historical search to save time)
+- Always use search_knowledge to find solutions
+
+Be efficient: Don't use tools if you already have enough information."""
+                    
+                    # Container for agent reasoning
+                    reasoning_container = st.container()
+                    
+                    with reasoning_container:
+                        st.markdown("#### 🧠 Agent Reasoning Process")
+                        
+                        # Show agent thinking
+                        with st.spinner("🤔 Agent is analyzing the ticket..."):
+                            try:
+                                # Invoke agent with system message
+                                result = agent.invoke({
+                                    "messages": [
+                                        SystemMessage(content=system_prompt),
+                                        ("user", f"Analyze this support ticket and provide recommendations: {ticket_text_langraph}")
+                                    ]
+                                })
+                                
+                                elapsed_time = (time.time() - total_start) * 1000
+                                
+                                # Parse messages to show reasoning
+                                messages = result.get('messages', [])
+                                
+                                st.success(f"✅ Analysis complete in {elapsed_time:.0f}ms")
+                                st.markdown("---")
+                                
+                                # Show tool calls and reasoning
+                                tool_calls = []
+                                agent_thoughts = []
+                                agent_response = None
+                                
+                                for msg in messages:
+                                    msg_type = getattr(msg, 'type', None) or type(msg).__name__.lower()
+                                    
+                                    if 'ai' in msg_type:
+                                        # AI message (thought or final response)
+                                        content = getattr(msg, 'content', '')
+                                        tool_calls_in_msg = getattr(msg, 'tool_calls', [])
+                                        
+                                        if tool_calls_in_msg:
+                                            # This is a thought with tool calls
+                                            for tc in tool_calls_in_msg:
+                                                tool_name = tc.get('name', 'unknown')
+                                                tool_args = tc.get('args', {})
+                                                tool_calls.append({
+                                                    'name': tool_name,
+                                                    'args': tool_args
+                                                })
+                                        elif content:
+                                            # This is reasoning or final answer
+                                            if not agent_response:  # First AI message with content is likely the final answer
+                                                agent_response = content
+                                            else:
+                                                agent_thoughts.append(content)
+                                    
+                                    elif 'tool' in msg_type:
+                                        # Tool response
+                                        tool_name = getattr(msg, 'name', 'unknown')
+                                        tool_content = getattr(msg, 'content', '')
+                                        
+                                        # Find matching tool call
+                                        for tc in tool_calls:
+                                            if tc['name'] == tool_name and 'result' not in tc:
+                                                tc['result'] = tool_content
+                                                break
+                                
+                                # Display tool calls in expandable sections
+                                if tool_calls:
+                                    st.markdown("#### 🔧 Tools Used by Agent")
+                                    st.info(f"Agent used **{len(tool_calls)} tools** out of 4 available")
+                                    
+                                    for i, tc in enumerate(tool_calls, 1):
+                                        tool_name = tc['name']
+                                        tool_args = tc.get('args', {})
+                                        tool_result = tc.get('result', 'No result')
+                                        
+                                        # Icon based on tool
+                                        icon = "🎯" if "classify" in tool_name else "📊" if "extract" in tool_name else "📚" if "search" in tool_name else "🔍"
+                                        
+                                        with st.expander(f"{icon} **Tool {i}: {tool_name}**", expanded=(i <= 2)):
+                                            st.write("**Input:**")
+                                            st.json(tool_args)
+                                            
+                                            st.write("**Output:**")
+                                            try:
+                                                result_json = json.loads(tool_result)
+                                                st.json(result_json)
+                                            except:
+                                                st.text(tool_result[:500] + "..." if len(tool_result) > 500 else tool_result)
+                                else:
+                                    st.warning("No tool calls detected in agent execution")
+                                
+                                # Display final response
+                                st.markdown("---")
+                                st.markdown("#### 💡 Agent's Final Analysis")
+                                
+                                if agent_response:
+                                    st.markdown(agent_response)
+                                else:
+                                    st.info("Agent completed analysis. Check tool outputs above for details.")
+                                
+                                # Performance metrics
+                                st.markdown("---")
+                                col1, col2, col3 = st.columns(3)
+                                
+                                with col1:
+                                    st.metric("Tools Used", f"{len(tool_calls)}/4")
+                                with col2:
+                                    st.metric("Total Time", f"{elapsed_time:.0f}ms")
+                                with col3:
+                                    # Estimate cost based on tools used
+                                    cost_per_tool = 0.0005
+                                    total_cost = len(tool_calls) * cost_per_tool
+                                    st.metric("Estimated Cost", f"${total_cost:.4f}")
+                                
+                                # Show raw messages for debugging
+                                with st.expander("🔍 Debug: Raw Agent Messages"):
+                                    for i, msg in enumerate(messages):
+                                        st.write(f"**Message {i+1}:** {type(msg).__name__}")
+                                        st.write(f"Content: {getattr(msg, 'content', 'N/A')[:200]}")
+                                        if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                                            st.write(f"Tool calls: {len(msg.tool_calls)}")
+                                        st.markdown("---")
+                                
+                            except Exception as e:
+                                st.error(f"Error running agent: {e}")
+                                import traceback
+                                with st.expander("🔍 Error Details"):
+                                    st.code(traceback.format_exc())
+        
+        # Comparison with other approaches
+        st.markdown("---")
+        st.markdown("### 🔄 LangGraph Agent vs Other Approaches")
+        
+        comparison_data = {
+            "Approach": ["Quick Classify", "6-Phase Pipeline", "Multi-Agent", "LangGraph Agent"],
+            "Speed": ["⚡ Fastest (~1s)", "🐌 Slower (~3-5s)", "🐌 Slower (~3-5s)", "⚡ Adaptive (1-5s)"],
+            "Cost": ["💰 Lowest ($0.0005)", "💰💰 Higher ($0.002)", "💰💰 Higher ($0.002)", "💰 Adaptive ($0.0005-$0.002)"],
+            "Intelligence": ["🤖 Fixed", "🤖 Fixed", "🤖🤖 Coordinated", "🤖🤖🤖 Adaptive"],
+            "Tools Used": ["1 (combined)", "4 (always)", "4 (always)", "1-4 (adaptive)"],
+            "Best For": ["Simple tickets", "Comprehensive analysis", "All tickets", "All tickets (smart)"]
+        }
+        
+        import pandas as pd
+        comparison_df = pd.DataFrame(comparison_data)
+        st.table(comparison_df)
+        
+        st.markdown("""
+        **Why Use LangGraph Agent?**
+        - 🧠 **Intelligent**: Decides which tools to use based on ticket complexity
+        - ⚡ **Efficient**: Skips unnecessary tools for simple tickets (saves time & money)
+        - 🎯 **Comprehensive**: Uses all tools when needed for complex issues
+        - 🔍 **Transparent**: Shows reasoning process and tool selection
+        
+        **Example:**
+        - **P3 ticket** (password reset): Agent uses 2 tools → $0.001, ~1-2s
+        - **P1 ticket** (database down): Agent uses 4 tools → $0.002, ~3-5s
+        """)
+
 # Footer
 st.markdown("---")
-st.caption("🏗️ Built with Unity Catalog AI Functions, Vector Search, Genie, and Streamlit | ☁️ Running on Databricks Apps")
+st.caption("🏗️ Built with Unity Catalog AI Functions, Vector Search, Genie, LangGraph, and Streamlit | ☁️ Running on Databricks Apps")
 
