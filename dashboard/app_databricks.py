@@ -456,10 +456,14 @@ try:
     def create_langraph_agent():
         """Create the LangGraph ReAct agent with all tools"""
         try:
-            # Initialize LLM
+            # Use DBRX for better function calling support
+            # Note: LLM_ENDPOINT is from env, but we override for agent to use DBRX
+            agent_endpoint = "databricks-dbrx-instruct"  # Best for function calling
+            
+            # Initialize LLM with DBRX (better function calling support)
             llm = ChatDatabricks(
-                endpoint=LLM_ENDPOINT,
-                temperature=0.0,
+                endpoint=agent_endpoint,
+                temperature=0.1,  # Small temp for more reliable tool calls
                 max_tokens=2000
             )
             
@@ -473,6 +477,8 @@ try:
             return agent
         except Exception as e:
             st.error(f"Error creating agent: {e}")
+            import traceback
+            st.error(traceback.format_exc())
             return None
     
 except ImportError as e:
@@ -1423,23 +1429,24 @@ with tab5:
                     st.error("Failed to create LangGraph agent")
                 else:
                     # System prompt
-                    system_prompt = """You are an expert IT support ticket analyst. 
-                    
-Your job is to analyze support tickets and provide comprehensive recommendations.
+                    system_prompt = """You are an expert IT support ticket analyst. Your job is to analyze support tickets and provide comprehensive recommendations.
 
-Available tools:
-1. classify_ticket - Use FIRST to understand ticket category, priority, and routing
-2. extract_metadata - Use to get detailed metadata (affected systems, keywords, etc.)
-3. search_knowledge - Use to find relevant documentation and solutions
-4. query_historical - Use to find similar resolved tickets (optional, for complex issues)
+You have access to these tools:
+1. classify_ticket - Classifies tickets into category/priority/team. Use this FIRST.
+2. extract_metadata - Extracts detailed metadata. Use after classification.
+3. search_knowledge - Searches knowledge base for solutions. Use for most tickets.
+4. query_historical - Finds similar historical tickets. Use for complex P1/P2 issues.
 
-Strategy:
-- ALWAYS start with classify_ticket
-- For P1/P2 tickets: Use all tools for comprehensive analysis
-- For P3 tickets: Use classify_ticket + extract_metadata (skip historical search to save time)
-- Always use search_knowledge to find solutions
+IMPORTANT: You MUST use the tools by calling them properly. After using tools, provide a final text summary.
 
-Be efficient: Don't use tools if you already have enough information."""
+Analysis strategy:
+- Start with classify_ticket
+- Then use extract_metadata
+- Use search_knowledge to find solutions
+- For P1/P2 tickets, also use query_historical
+- After gathering information, provide your final analysis
+
+Be thorough but efficient."""
                     
                     # Container for agent reasoning
                     reasoning_container = st.container()
