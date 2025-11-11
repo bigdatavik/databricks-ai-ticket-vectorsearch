@@ -400,19 +400,45 @@ try:
     
     def search_knowledge_wrapper(query: str) -> str:
         """Searches the knowledge base for relevant articles and documentation"""
-        results = query_vector_search(query, num_results=3)
-        if results:
-            formatted = []
-            for row in results:
-                formatted.append({
-                    "doc_id": row[0],
-                    "doc_type": row[1],
-                    "title": row[2],
-                    "content": row[3][:500]  # Truncate for agent
-                })
-            import json
-            return json.dumps(formatted, indent=2)
-        return json.dumps([])
+        import json
+        # Call vector search WITHOUT Streamlit UI (for tool execution)
+        try:
+            if not w:
+                return json.dumps({"error": "WorkspaceClient not initialized"})
+            
+            body = {
+                "columns": ["doc_id", "doc_type", "title", "content"],
+                "num_results": 3,
+                "query_text": query
+            }
+            
+            response = w.api_client.do(
+                'POST',
+                f'/api/2.0/vector-search/indexes/{INDEX_NAME}/query',
+                body=body
+            )
+            
+            # Check for error
+            if isinstance(response, dict) and 'error_code' in response:
+                error_msg = response.get('message', 'Unknown error')
+                return json.dumps({"error": f"Vector Search error: {error_msg}"})
+            
+            # Extract results
+            data_array = response.get('result', {}).get('data_array', [])
+            
+            if data_array:
+                formatted = []
+                for row in data_array:
+                    formatted.append({
+                        "doc_id": row[0],
+                        "doc_type": row[1],
+                        "title": row[2],
+                        "content": row[3][:500]  # Truncate for agent
+                    })
+                return json.dumps(formatted, indent=2)
+            return json.dumps([])
+        except Exception as e:
+            return json.dumps({"error": f"Search failed: {str(e)}"})
     
     def query_historical_wrapper(question: str) -> str:
         """Queries historical resolved tickets using natural language"""
