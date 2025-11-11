@@ -482,11 +482,11 @@ try:
     def create_langraph_agent():
         """Create the LangGraph ReAct agent with all tools"""
         try:
-            # Use Meta Llama 3.3 70B for function calling support
-            # This is the best available model in the workspace for tool calling
-            agent_endpoint = "databricks-meta-llama-3-3-70b-instruct"
+            # Use Claude Sonnet 4 for EXCELLENT function calling support
+            # Claude models are the best at structured tool calling
+            agent_endpoint = "databricks-claude-sonnet-4"
             
-            # Initialize LLM with Llama 3.3 70B (good function calling support)
+            # Initialize LLM with Claude Sonnet 4 (BEST function calling)
             llm = ChatDatabricks(
                 endpoint=agent_endpoint,
                 temperature=0.1,  # Small temp for more reliable tool calls
