@@ -161,7 +161,11 @@ SCHEMA = "support_ai"
 WAREHOUSE_ID = "148ccb90800933a1"
 INDEX_NAME = f"{CATALOG}.{SCHEMA}.knowledge_base_index"
 GENIE_SPACE_ID = "01f0b91aa91c1b0c8cce6529ea09f0a8"
-LLM_ENDPOINT = "databricks-meta-llama-3-1-8b-instruct"
+
+# 🚨 CRITICAL: Use Claude Sonnet 4 for production agents with function calling
+# See notebooks/23_langraph_agent_learning.py lines 122-140 for detailed explanation
+# TL;DR: Claude > Llama for tool calling (JSON vs XML format issues)
+LLM_ENDPOINT = "databricks-claude-sonnet-4"  # ✅ PRODUCTION CHOICE
 
 config_checks = []
 

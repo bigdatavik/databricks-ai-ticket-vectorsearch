@@ -119,9 +119,25 @@ INDEX_NAME = f"{CATALOG}.{SCHEMA}.knowledge_base_index"  # Vector search index
 GENIE_SPACE_ID = "01f0b91aa91c1b0c8cce6529ea09f0a8"  # Genie space for historical queries
 
 # LLM Configuration
-# Using Meta Llama 3.1 8B Instruct - foundation model endpoint
-# Note: Changed from databricks-dbrx-instruct (not available) during debugging
-LLM_ENDPOINT = "databricks-meta-llama-3-1-8b-instruct"
+# 🚨 CRITICAL: Use Claude Sonnet 4 for production agents with function calling
+# 
+# LESSON LEARNED:
+# - Meta Llama models return XML-like syntax: <function=name>{args}</function>
+# - LangGraph expects proper JSON format for tool calls
+# - This causes BAD_REQUEST errors: "Model response did not respect required format"
+# 
+# MODEL COMPARISON (Function Calling):
+# ✅ Claude Sonnet 4: ⭐⭐⭐⭐⭐ BEST - Perfect JSON, reliable tool use
+# ✅ GPT-4: ⭐⭐⭐⭐⭐ Also excellent (not tested here)
+# ⚠️ DBRX: ⭐⭐⭐⭐☆ Good (but unavailable in this workspace)
+# ❌ Meta Llama 3.3 70B: ⭐⭐☆☆☆ Poor - XML format issues
+# ❌ Meta Llama 3.1 8B: ⭐☆☆☆☆ Very Poor - XML format issues
+#
+# COST vs RELIABILITY:
+# - Claude costs more per token BUT first-try success = lower total cost
+# - Failed tool calls waste tokens on retries + bad UX
+# - For production agents: Reliability > per-token cost
+LLM_ENDPOINT = "databricks-claude-sonnet-4"  # ✅ PRODUCTION CHOICE
 
 print("✅ Configuration loaded")
 print(f"  📚 Catalog: {CATALOG}")
@@ -589,9 +605,18 @@ class QueryHistoricalInput(BaseModel):
 
 # Tool 1: Classification
 def classify_ticket_wrapper(ticket_text: str) -> str:
-    """Wrapper for ai_classify UC Function"""
+    """
+    Wrapper for ai_classify UC Function.
+    
+    IMPORTANT: This function MUST be pure (no side effects)!
+    - ❌ NO Streamlit calls (st.info, st.error, etc.) - causes NoSessionContext error
+    - ✅ Return JSON string only
+    - ✅ Include error handling in return value
+    
+    WHY: LangGraph runs tools in background threads without Streamlit session context
+    """
     result = call_uc_function("ai_classify", {"ticket_text": ticket_text})
-    return json.dumps(result, indent=2)
+    return json.dumps(result, indent=2) if result else json.dumps({"error": "Classification failed"})
 
 classify_tool = Tool(
     name="classify_ticket",
@@ -603,9 +628,12 @@ print("✅ Tool 1: classify_ticket")
 
 # Tool 2: Metadata Extraction
 def extract_metadata_wrapper(ticket_text: str) -> str:
-    """Wrapper for ai_extract UC Function"""
+    """
+    Wrapper for ai_extract UC Function.
+    IMPORTANT: Pure function - no Streamlit calls! (See classify_ticket_wrapper for details)
+    """
     result = call_uc_function("ai_extract", {"ticket_text": ticket_text})
-    return json.dumps(result, indent=2)
+    return json.dumps(result, indent=2) if result else json.dumps({"error": "Extraction failed"})
 
 extract_tool = Tool(
     name="extract_metadata",
@@ -617,9 +645,15 @@ print("✅ Tool 2: extract_metadata")
 
 # Tool 3: Knowledge Base Search
 def search_knowledge_wrapper(query: str) -> str:
-    """Wrapper for Vector Search"""
-    results = search_knowledge_base(query, num_results=3)
-    return json.dumps(results, indent=2)
+    """
+    Wrapper for Vector Search.
+    IMPORTANT: Pure function - no Streamlit calls! (See classify_ticket_wrapper for details)
+    """
+    try:
+        results = search_knowledge_base(query, num_results=3)
+        return json.dumps(results, indent=2) if results else json.dumps([])
+    except Exception as e:
+        return json.dumps({"error": f"Search failed: {str(e)}"})
 
 search_tool = Tool(
     name="search_knowledge",
@@ -631,10 +665,16 @@ print("✅ Tool 3: search_knowledge")
 
 # Tool 4: Historical Tickets (Genie)
 def query_historical_wrapper(question: str) -> str:
-    """Wrapper for Genie Conversation API"""
-    genie = GenieConversationTool(w, GENIE_SPACE_ID)
-    result = genie.query(question)
-    return json.dumps(result, indent=2, default=str)
+    """
+    Wrapper for Genie Conversation API.
+    IMPORTANT: Pure function - no Streamlit calls! (See classify_ticket_wrapper for details)
+    """
+    try:
+        genie = GenieConversationTool(w, GENIE_SPACE_ID)
+        result = genie.query(question)
+        return json.dumps(result, indent=2, default=str)
+    except Exception as e:
+        return json.dumps({"error": f"Historical query failed: {str(e)}"})
 
 genie_tool = Tool(
     name="query_historical",
