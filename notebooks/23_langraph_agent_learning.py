@@ -10,6 +10,22 @@
 # MAGIC 
 # MAGIC ---
 # MAGIC 
+# MAGIC ## 🔄 **NOTEBOOK VERSION INFO**
+# MAGIC 
+# MAGIC **📅 Last Updated:** November 13, 2025 - 10:00 AM PST  
+# MAGIC **🔧 Version:** 2.0 - WITH `bind_tools()` FIX  
+# MAGIC **✅ Critical Fix:** Added `llm.bind_tools()` to prevent XML format errors  
+# MAGIC **🎯 Status:** Ready for testing  
+# MAGIC 
+# MAGIC **🚨 VERIFICATION:** After running LLM init cell, you MUST see:  
+# MAGIC ```
+# MAGIC ✅ Tools bound to LLM (ensures proper JSON format)
+# MAGIC ```
+# MAGIC 
+# MAGIC **If you DON'T see this line → Detach & Reattach notebook!**
+# MAGIC 
+# MAGIC ---
+# MAGIC 
 # MAGIC ## What This Notebook Does
 # MAGIC 
 # MAGIC 1. ✅ Tests all 4 tools individually (UC Functions, Vector Search, Genie)
@@ -43,6 +59,26 @@
 # COMMAND ----------
 
 dbutils.library.restartPython()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## ✅ Version Check - Run This First!
+
+# COMMAND ----------
+
+# Version check - Run this to verify you have the latest notebook
+import datetime
+print("=" * 80)
+print("🔍 NOTEBOOK VERSION CHECK")
+print("=" * 80)
+print("📅 Deployed Version: November 13, 2025 - 10:00 AM PST")
+print("🔧 Version: 2.0 - WITH bind_tools() FIX")
+print("=" * 80)
+print("\n✅ If you see this, the notebook file is the latest version!")
+print("🚨 After running LLM init, you MUST see: 'Tools bound to LLM'")
+print("❌ If you don't see that line → Detach & Reattach notebook")
+print("=" * 80)
 
 # COMMAND ----------
 
