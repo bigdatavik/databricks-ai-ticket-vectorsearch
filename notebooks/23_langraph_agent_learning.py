@@ -139,12 +139,35 @@ GENIE_SPACE_ID = "01f0b91aa91c1b0c8cce6529ea09f0a8"  # Genie space for historica
 # - For production agents: Reliability > per-token cost
 LLM_ENDPOINT = "databricks-claude-sonnet-4"  # ✅ PRODUCTION CHOICE
 
-print("✅ Configuration loaded")
-print(f"  📚 Catalog: {CATALOG}")
-print(f"  📊 Schema: {SCHEMA}")
-print(f"  🔍 Vector Index: {INDEX_NAME}")
-print(f"  🤖 Genie Space: {GENIE_SPACE_ID}")
-print(f"  🧠 LLM Endpoint: {LLM_ENDPOINT}")
+print("=" * 80)
+print("✅ CONFIGURATION LOADED")
+print("=" * 80)
+print(f"📚 Catalog: {CATALOG}")
+print(f"📊 Schema: {SCHEMA}")
+print(f"🔍 Vector Index: {INDEX_NAME}")
+print(f"🤖 Genie Space: {GENIE_SPACE_ID}")
+print(f"🧠 LLM Endpoint: {LLM_ENDPOINT}")
+print("=" * 80)
+
+# 🚨 CRITICAL VERIFICATION: Ensure we're using Claude Sonnet 4
+if LLM_ENDPOINT != "databricks-claude-sonnet-4":
+    print("\n" + "!" * 80)
+    print("⚠️  WARNING: WRONG MODEL DETECTED!")
+    print("!" * 80)
+    print(f"❌ Currently using: {LLM_ENDPOINT}")
+    print(f"✅ Should be using: databricks-claude-sonnet-4")
+    print("\n🔧 FIX:")
+    print("   1. In Databricks UI: Detach & Reattach this notebook")
+    print("   2. OR: Click 'Clear' → 'Clear State & Outputs'")
+    print("   3. Re-run ALL cells from the beginning")
+    print("!" * 80)
+    raise ValueError(
+        f"Wrong LLM endpoint! Using '{LLM_ENDPOINT}' instead of 'databricks-claude-sonnet-4'. "
+        f"This will cause BAD_REQUEST errors with XML-format tool calls. "
+        f"Detach & reattach notebook, then re-run from beginning."
+    )
+else:
+    print("✅ VERIFICATION PASSED: Using Claude Sonnet 4 (correct model for function calling)")
 
 # COMMAND ----------
 
