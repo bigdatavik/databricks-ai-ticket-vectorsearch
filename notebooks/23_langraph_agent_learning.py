@@ -1,5 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
+# MAGIC # ✨✨✨ VERSION 2.0 - UPDATED NOV 13, 2025 ✨✨✨
 # MAGIC # LangGraph Agent Learning - Support Ticket Analysis
 # MAGIC 
 # MAGIC **Purpose:** Learn LangGraph ReAct agents by wrapping existing UC Functions, Vector Search, and Genie API
