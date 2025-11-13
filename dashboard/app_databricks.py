@@ -495,8 +495,13 @@ try:
             
             # Create agent with all tools
             tools_list = [classify_tool, extract_tool, search_tool, genie_tool_langchain]
+            
+            # CRITICAL: Bind tools to LLM for consistent JSON format
+            # Without this, Claude might hallucinate XML format mid-conversation
+            llm_with_tools = llm.bind_tools(tools_list)
+            
             agent = create_react_agent(
-                model=llm,
+                model=llm_with_tools,  # Use bound LLM for reliable tool calling
                 tools=tools_list
             )
             

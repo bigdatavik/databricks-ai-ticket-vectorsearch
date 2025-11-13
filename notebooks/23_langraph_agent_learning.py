@@ -772,7 +772,7 @@ Think step-by-step, explain your reasoning, and make smart decisions about which
 # It handles authentication via WorkspaceClient automatically
 llm = ChatDatabricks(
     endpoint=LLM_ENDPOINT,  # Foundation model serving endpoint
-    temperature=0.3,  # Low temp for more consistent/predictable behavior
+    temperature=0.1,  # VERY LOW temp for reliable tool calling (was 0.3, reduced to 0.1)
     max_tokens=4096  # Sufficient for reasoning + tool calls
 )
 print(f"✅ LLM initialized: {LLM_ENDPOINT}")
@@ -782,11 +782,17 @@ print(f"✅ LLM initialized: {LLM_ENDPOINT}")
 # Pattern: Thought → Action (tool call) → Observation (tool result) → repeat
 tools_list = [classify_tool, extract_tool, search_tool, genie_tool]
 
+# 🚨 CRITICAL FIX: Use bind_tools for reliable function calling
+# This ensures the LLM uses proper JSON format (not XML) for ALL tool calls
+# Without this, Claude might hallucinate XML format mid-conversation
+llm_with_tools = llm.bind_tools(tools_list)
+print(f"✅ Tools bound to LLM (ensures proper JSON format)")
+
 # Create the agent using the standard create_react_agent
-# IMPORTANT: No state_modifier parameter (removed in v1.0)
-# System prompt will be passed at invocation time instead
+# IMPORTANT: Pass the bound LLM (llm_with_tools) not the raw LLM
+# This ensures consistent tool calling format throughout the conversation
 agent = create_react_agent(
-    model=llm,  # The LLM that will do the reasoning
+    model=llm_with_tools,  # The LLM with tools bound (CRITICAL!)
     tools=tools_list  # Available tools the agent can call
     # NOTE: We do NOT pass state_modifier here (deprecated in v1.0)
     # Instead, we'll inject SystemMessage when we invoke the agent
