@@ -35,3 +35,7 @@ Thumbs.db
 *.old
 databricks.yml.old
 databricks.dev.backup.yml
+
+# Environment files (symlinked to central standards)
+MY_ENVIRONMENT.md
+MY_ENVIRONMENT_AI_TICKET_LESSONS.md
