@@ -39,3 +39,6 @@ databricks.dev.backup.yml
 # Environment files (symlinked to central standards)
 MY_ENVIRONMENT.md
 MY_ENVIRONMENT_AI_TICKET_LESSONS.md
+
+# Project notes (internal documentation, not for sharing)
+project-notes/
