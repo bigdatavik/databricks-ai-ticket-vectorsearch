@@ -413,7 +413,7 @@ This system is production-ready with:
 ## 📞 Contact & Links
 
 - **GitHub**: [https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch](https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch)
-- **LinkedIn**: [Connect for questions and discussions](#)
+- **LinkedIn**: [Connect for questions and discussions](https://www.linkedin.com/in/vkmalhotra/)
 - **Databricks**: [Unity Catalog AI Functions](https://docs.databricks.com/en/large-language-models/ai-functions.html)
 
 ---
