@@ -2,6 +2,8 @@
 
 ## From Chaos to Clarity: A Production-Ready Blueprint with Projected $50K+ Annual Savings
 
+🔗 **GitHub**: https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch
+
 ## About This Reference Architecture
 
 This is a **production-ready reference architecture** for building an AI-powered support ticket classification system using Databricks Unity Catalog, LangChain, and LangGraph.
@@ -575,15 +577,19 @@ Building an AI-powered support ticket system isn't just about technology—it's 
 
 **Projected ROI at Scale**: At 10K tickets/month, estimated $117,600 annual savings with <1 month payback period.
 
-**Your Turn**: What support processes are costing you $100K+ annually? This reference architecture can be adapted for your use case. Let's discuss in the comments.
+**Your Turn**: What support processes are costing you $100K+ annually? 
+
+👉 **Get the code**: https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch  
+💬 **This reference architecture can be adapted** for customer service, email classification, document processing, and more. Let's discuss your use case in the comments.
 
 ---
 
 ## Want to Learn More?
 
-🔗 **GitHub**: [Link to repository]  
-📖 **Technical Deep Dive**: [Link to docs]  
-💬 **Connect**: Let's talk about AI agents, LangGraph, or Databricks  
+🔗 **GitHub Repository**: https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch  
+📖 **Full Source Code**: Production-ready reference architecture with complete implementation  
+💬 **Connect on LinkedIn**: Let's talk about AI agents, LangGraph, or Databricks  
+⭐ **Star the repo** if you find this reference architecture useful!  
 
 ---
 
@@ -613,12 +619,12 @@ This **production-ready reference architecture** was built to solve a real busin
 
 ## Want to Implement This Reference Architecture?
 
-🔗 **GitHub**: [Link to repository]  
-📖 **Full Documentation**: [Link to technical docs]  
-🎥 **Demo Video**: [Link to demo]  
-💬 **Connect**: Let's discuss AI agents, LangGraph, or Databricks  
+🔗 **GitHub Repository**: https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch  
+📖 **Complete Source Code**: All notebooks, dashboard code, and configurations included  
+💬 **Questions?**: Open a GitHub issue or connect on LinkedIn  
+⭐ **Star the repo**: Help others discover this reference architecture  
 
-**Questions about adapting this architecture?** Drop a comment below or reach out directly.
+**Ready to adapt this for your use case?** Clone the repo and customize for your domain. All code is production-ready and extensively documented.
 
 ---
 
@@ -637,6 +643,22 @@ This reference architecture was built to demonstrate a production-ready solution
 The key innovation? **Giving teams five progressive options**: start with quick classification and progressively add intelligence, culminating in two cutting-edge AI agent approaches—sequential orchestration when thoroughness matters, or adaptive LangGraph agents that intelligently choose tools based on ticket complexity.
 
 **The architecture is deployed, tested, and ready for enterprise implementation.**
+
+---
+
+---
+
+## 🚀 Get Started Today
+
+**Clone the repository**: https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch
+
+```bash
+git clone https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch.git
+cd databricks-ai-ticket-vectorsearch
+# Follow README for deployment instructions
+```
+
+**Star the repo** ⭐ if you find this reference architecture useful!
 
 ---
 
