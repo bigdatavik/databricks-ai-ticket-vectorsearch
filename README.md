@@ -1,421 +1,326 @@
-# AI-Powered Support Ticket Classification System
+# LangGraph + Databricks Tutorial
 
-**A production-ready reference architecture** for automated IT support ticket classification using Databricks Unity Catalog AI Functions, Vector Search, LangChain, and LangGraph.
+**Learn to build adaptive AI agents using LangGraph's ReAct pattern on Databricks**
 
-## 🎯 Key Features
+This tutorial demonstrates how to build intelligent agents that can reason and act adaptively using LangGraph, LangChain, and Databricks Unity Catalog.
 
-- **5-Tab Progressive Architecture**: From simple classification to sophisticated AI agents
-- **Dual AI Agent Approaches**: Sequential orchestration + Adaptive LangGraph ReAct agent
-- **Unity Catalog AI Functions**: Serverless AI with `ai_classify`, `ai_extract`, `ai_gen`
-- **Vector Search Integration**: Semantic search over knowledge base documents
-- **Genie API Integration**: Natural language querying of historical tickets
-- **Multi-Environment Support**: Dev (fast iteration), Staging, Production
-- **Cost Optimized**: Estimated <$0.002 per ticket at scale
+🔗 **Main Project**: [databricks-ai-ticket-vectorsearch](https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch)
 
-## 📊 Performance Metrics
+---
 
-| Metric | Target | Measured |
-|--------|--------|----------|
-| Classification Accuracy | 95% | ✅ 95%+ (tested) |
-| Processing Time | <3 sec | ✅ ~2-4 sec |
-| Cost per Ticket | <$0.002 | ✅ $0.0018 |
+## 🎯 What You'll Learn
 
-## 🏗️ Architecture Overview
+By completing this tutorial, you will learn how to:
 
-### 5-Tab Progressive Classification System
+1. **Create LangChain Tools** that wrap Databricks services:
+   - Unity Catalog AI Functions
+   - Vector Search for semantic retrieval
+   - Genie API for natural language queries
 
-The dashboard provides five progressively sophisticated approaches:
+2. **Build a LangGraph ReAct Agent** that:
+   - Reasons about which tools to use
+   - Adapts to task complexity
+   - Provides transparent decision-making
 
-```
-Tab 1: 🚀 Quick Classify          → Single UC function call (fastest, ~1s)
-Tab 2: 📋 6-Phase Classification  → Traditional pipeline (educational)
-Tab 3: 📊 Batch Processing        → High-volume CSV processing
-Tab 4: 🤖 AI Agent Assistant      → Sequential multi-agent orchestration
-Tab 5: 🧠 LangGraph ReAct Agent   → Adaptive intelligent agent (state-of-the-art)
-```
+3. **Master Critical Patterns**:
+   - `bind_tools()` for reliable tool calling
+   - Pydantic input schemas for type safety
+   - WorkspaceClient authentication
+   - Error handling and retries
 
-### Tab 4: AI Agent Assistant (Sequential Multi-Agent)
+4. **Compare Approaches**:
+   - Sequential agent orchestration
+   - Adaptive ReAct agent
+   - When to use each pattern
 
-**4-Agent Sequential System** for comprehensive ticket intelligence:
+---
 
-1. **Agent 1: Classification** - UC Function: `ai_classify(ticket_text)`
-   - Returns: category, priority, assigned_team
-   
-2. **Agent 2: Metadata Extraction** - UC Function: `ai_extract(ticket_text)`
-   - Returns: JSON with priority_score, urgency_level, affected_systems
-   
-3. **Agent 3: Knowledge Search** - Vector Search over knowledge base
-   - Top 3 relevant documents using BGE embeddings
-   
-4. **Agent 4: Historical Tickets** - Genie Conversation API
-   - Natural language query for similar resolved tickets
-   - Shows resolution details, root causes, and resolution times
+## 📋 Prerequisites
 
-**When to use**: Guaranteed comprehensive analysis for every ticket, compliance-heavy scenarios.
+### Required Access
 
-### Tab 5: LangGraph ReAct Agent (Adaptive Intelligence)
+- **Databricks Workspace** (Azure, AWS, or GCP)
+- **Unity Catalog** enabled
+- **Cluster** with Databricks Runtime 16.4 LTS or later
+- **Permissions**:
+  - Execute UC AI Functions
+  - Query Vector Search indexes
+  - Access Genie spaces (optional)
 
-**Intelligent Tool Selection** based on ticket complexity:
+### Required Knowledge
 
-- Uses LangChain + LangGraph's ReAct (Reasoning + Acting) pattern
-- **Simple ticket (P3 password reset)**: Uses 2 tools → $0.0005, ~1-2s
-- **Complex issue (P1 database down)**: Uses all 4 tools → $0.0018, ~4-5s
-- **Cost savings**: 40-60% on simple tickets while maintaining quality
+- Python programming
+- Basic understanding of LLMs
+- Familiarity with Databricks notebooks
 
-**When to use**: High-volume environments where cost and speed optimization matter.
-
-### Technology Stack
-
-- **Databricks Runtime**: 16.4 LTS (Spark 3.5.2)
-- **Unity Catalog**: AI Functions + Vector Search
-- **Genie API**: Natural language SQL generation & execution
-- **Agent Framework**: LangChain + LangGraph
-- **LLM**: Claude Sonnet 4 (via Databricks Foundation Model API)
-- **Embedding Model**: `databricks-bge-large-en` (free)
-- **Vector Search**: Delta Sync with TRIGGERED mode
-- **Dashboard**: Streamlit (local + Databricks Apps)
-- **Deployment**: Databricks Asset Bundles (DAB)
+---
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### 1. Clone this Tutorial
 
-- Databricks workspace (Azure, AWS, or GCP)
-- Unity Catalog enabled
-- Databricks CLI configured (`~/.databrickscfg`)
-- Existing cluster for dev OR ability to create job clusters
-
-### Installation
-
-1. **Clone the repository**
 ```bash
 git clone https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch.git
 cd databricks-ai-ticket-vectorsearch
+git checkout langgraph-databricks-tutorial
 ```
 
-2. **Configure Databricks CLI**
-```bash
-# Check existing configuration
-cat ~/.databrickscfg
-
-# Should have a profile with:
-# - host
-# - token
-
-# Or configure new profile
-databricks configure --profile DEFAULT_azure
-```
-
-3. **Update databricks.yml**
-```yaml
-# Edit databricks.yml - Update cluster ID for dev:
-existing_cluster_id: YOUR_CLUSTER_ID
-```
-
-### Deploy to Dev
+### 2. Install Dependencies
 
 ```bash
-# Validate configuration
-databricks bundle validate
-
-# Deploy bundle (notebooks, app code, configs)
-databricks bundle deploy
-
-# Run infrastructure setup (creates catalog, tables, functions, vector search)
-databricks bundle run setup_infrastructure
-
-# App will auto-deploy as part of the bundle
+pip install -r requirements.txt
 ```
 
-Access your app at: `https://[your-app-name].[workspace-id].azuredatabricksapps.com`
+### 3. Upload Notebook to Databricks
 
-### Deploy to Staging/Prod
+Upload `tutorial/23_langraph_agent_learning.py` to your Databricks workspace.
 
-Use `databricks.staging_prod.yml` for production deployments:
+### 4. Configure the Notebook
 
-```bash
-# Deploy to staging
-databricks bundle deploy -t staging
+Update these variables in the notebook:
+- `CATALOG` - Your Unity Catalog name
+- `SCHEMA` - Your schema name
+- `WAREHOUSE_ID` - Your SQL Warehouse ID
+- `CLUSTER_ID` - Your cluster ID (for WorkspaceClient)
 
-# Run infrastructure
-databricks bundle run setup_infrastructure -t staging
+### 5. Run the Tutorial
 
-# Or deploy to prod
-databricks bundle deploy -t prod
-databricks bundle run setup_infrastructure -t prod
+Follow the notebook step-by-step to build your first LangGraph agent!
+
+---
+
+## 📚 Tutorial Structure
+
+### Main Tutorial Notebook
+
+**`tutorial/23_langraph_agent_learning.py`**
+
+An interactive Databricks notebook that walks you through:
+
+1. **Setup & Dependencies** - Install LangGraph and configure environment
+2. **Test Individual Tools** - Verify each Databricks service works
+3. **Wrap Tools for LangChain** - Create tool wrappers with proper schemas
+4. **Build Sequential Agent** - Fixed 4-step orchestration
+5. **Build ReAct Agent** - Adaptive tool selection with LangGraph
+6. **Compare Approaches** - See the difference in action
+7. **Best Practices** - Critical patterns and gotchas
+
+### Supporting Documentation
+
+**`docs/`**
+
+- **`REFERENCE_23_langraph_agent_learning.py`** - Complete reference implementation
+- **`LANGRAPH_ARCHITECTURE.md`** - Deep dive into the architecture
+- **`LANGRAPH_BIND_TOOLS_EXPLAINED.md`** - Why `bind_tools()` is critical
+- **`LANGRAPH_FOR_FRIENDS.md`** - Simplified explanation for beginners
+- **`QUICK_START_AGENT_NOTEBOOK.md`** - Quick reference guide
+
+---
+
+## 🔑 Key Concepts
+
+### 1. The ReAct Pattern (Reasoning + Acting)
+
+```
+1. Think: Analyze the problem
+2. Act: Choose and use tools
+3. Observe: Review tool results
+4. Decide: Continue or finish
+5. Respond: Provide final answer
 ```
 
-## 📁 Project Structure
+### 2. The bind_tools() Pattern (Critical!)
 
-```
-.
-├── README.md                         # This file
-├── databricks.yml                    # Dev config (interactive cluster)
-├── databricks.staging_prod.yml       # Staging/Prod config (job clusters)
-├── .gitignore                        # Git ignore rules
-│
-├── dashboard/                        # Streamlit application
-│   ├── app_databricks.py            # Production app (Databricks Apps)
-│   ├── app.yaml                     # Databricks App configuration
-│   ├── requirements.txt             # Python dependencies
-│   └── local_dev/                   # Local development setup
-│       ├── app_simple.py            # Simplified local version
-│       ├── README.md                # Local dev instructions
-│       └── run_local.py             # Local runner script
-│
-├── notebooks/                        # Infrastructure setup notebooks
-│   ├── 00_cleanup_full_mode.py      # Cleanup for full deployments
-│   ├── 00_setup_catalog_schema.py   # Create catalog & schema
-│   ├── 00_validate_environment.py   # Environment validation
-│   ├── 01_deploy_uc_function_ai_classify.py
-│   ├── 02_deploy_uc_function_ai_extract.py
-│   ├── 03_deploy_uc_function_ai_gen.py
-│   ├── 04_deploy_uc_function_quick_classify.py
-│   ├── 06_prepare_sample_tickets.py
-│   ├── 08_grant_app_permissions.py  # Grant service principal permissions
-│   ├── 09_grant_genie_permissions.py # Grant Genie space access
-│   ├── 10_upload_knowledge_docs.py  # Upload KB files to volume
-│   ├── 13_reload_kb_with_proper_chunking.py  # Process KB with chunking
-│   └── 14_recreate_vector_search_index.py
-│
-└── knowledge_base/                   # Knowledge base documents
-    ├── IT_infrastructure_runbook.txt
-    ├── application_support_guide.txt
-    ├── security_incident_playbook.txt
-    ├── user_access_policies.txt
-    ├── ticket_classification_rules.txt
-    ├── cloud_resources_guide.txt
-    ├── email_system_troubleshooting.txt
-    ├── database_admin_guide.txt
-    ├── network_troubleshooting_guide.txt
-    ├── monitoring_and_alerting_guide.txt
-    ├── slack_collaboration_guide.txt
-    └── storage_backup_guide.txt
-```
-
-## 🔧 Configuration
-
-### Cluster Configuration
-
-**Dev** (databricks.yml):
-- Uses existing interactive cluster
-- Fast startup for rapid iteration
-- Configure cluster ID in `databricks.yml`
-
-**Staging/Prod** (databricks.staging_prod.yml):
-- Job clusters (autoscaling)
-- Runtime: 16.4 LTS
-- Spot instances with fallback
-- Photon enabled
-
-### Deployment Modes
-
-**Full Mode** (dev default):
-- Drops and recreates everything (except shared vector endpoint)
-- Clean slate for testing major changes
-
-**Incremental Mode** (staging/prod default):
-- Updates only what changed
-- Faster, safer for production
-
-### Vector Search
-
-- **Endpoint**: `one-env-shared-endpoint-2` (shared, never deleted)
-- **Sync Mode**: TRIGGERED (manual, cost-effective)
-- **Embedding Model**: `databricks-bge-large-en` (free)
-- **Index Type**: Delta Sync
-
-## 📊 Unity Catalog Functions
-
-### 1. `ai_classify(ticket_text STRING)`
-
-Basic ticket classification
-
-**Returns**:
-```sql
-STRUCT<
-  category STRING,
-  priority STRING, 
-  assigned_team STRING
->
-```
-
-**Example**:
-```sql
-SELECT ai_classify('My laptop screen is flickering')
--- Returns: {category: "Hardware", priority: "Medium", assigned_team: "Desktop Support"}
-```
-
-### 2. `ai_extract(ticket_text STRING)`
-
-Extract structured metadata
-
-**Returns**:
-```sql
-STRUCT<
-  priority_score FLOAT,
-  urgency_level STRING,
-  affected_systems ARRAY<STRING>,
-  assigned_team STRING
->
-```
-
-### 3. `ai_gen(ticket_text STRING, context STRING)`
-
-Generate context-aware summaries
-
-**Returns**: `STRING` (summary with recommendations)
-
-### 4. `quick_classify_ticket(ticket_text STRING)`
-
-All-in-one classification (combines all phases)
-
-**Returns**: Complete classification with all metadata
-
-## 🎨 Dashboard Features
-
-- **Real-Time Classification**: Instant ticket categorization
-- **5 Progressive Tabs**: Choose complexity level based on needs
-- **Vector Search Display**: Top 3 relevant KB documents with similarity scores
-- **Sample Tickets**: Pre-loaded test cases for quick testing
-- **Performance Metrics**: Processing time, cost per ticket, phase breakdown
-- **AI Agent Reasoning**: View LangGraph agent's decision-making process
-
-## 🔐 Security & Permissions
-
-The deployment automatically grants permissions to the app's service principal:
-
-- `USE CATALOG` on target catalog
-- `USE SCHEMA` on `support_ai` schema
-- `SELECT` on all tables
-- `READ VOLUME` on `knowledge_docs`
-- `EXECUTE` on all UC functions
-- Genie space access (if configured)
-
-## 💰 Cost Optimization
-
-### Strategies
-
-1. **TRIGGERED Sync** - Vector Search sync on-demand (vs CONTINUOUS)
-2. **Shared Endpoint** - Reuse vector search endpoint across projects
-3. **Free Embeddings** - `databricks-bge-large-en` (no cost)
-4. **Job Clusters** - Autoscale + spot instances for staging/prod
-5. **Adaptive Agent** - LangGraph agent uses fewer tools for simple tickets
-
-### Cost Breakdown (per ticket)
-
-| Component | Cost | Notes |
-|-----------|------|-------|
-| UC AI Functions (3 calls) | $0.0015 | Claude Sonnet 4 via FMAPI |
-| Vector Search | $0.0001 | BGE embeddings (free) + compute |
-| Genie API | $0.0002 | Serverless SQL execution |
-| **TOTAL (Full)** | **$0.0018** | All 4 agents |
-| **Adaptive (Simple)** | **$0.0005** | LangGraph smart routing |
-
-## 🐛 Troubleshooting
-
-### Deployment Issues
-
-**Problem**: Bundle validation errors
-```bash
-# Solution: Check databricks.yml syntax
-databricks bundle validate
-```
-
-**Problem**: Cluster not found
-```bash
-# Solution: Update cluster ID in databricks.yml
-existing_cluster_id: YOUR_CLUSTER_ID
-```
-
-**Problem**: App permissions not working
-- **Cause**: App must be deployed before granting permissions
-- **Fix**: Infrastructure job includes permission granting as final steps
-
-### Vector Search Issues
-
-**Problem**: 403 errors
-- **Cause**: Service principal missing SELECT permission on index
-- **Fix**: Permissions granted in `08_grant_app_permissions.py`
-
-**Problem**: Index not syncing
-- **Cause**: Index not ONLINE yet
-- **Fix**: Notebooks wait for ONLINE status before syncing
-
-## 🧠 LangGraph Implementation Details
-
-### Key Technical Patterns
-
-**1. bind_tools() Pattern** (Critical for reliability):
 ```python
-from langchain_community.chat_models import ChatDatabricks
-from langgraph.prebuilt import create_react_agent
+# ❌ BAD: Tools not bound to LLM
+agent = create_react_agent(llm, tools)
 
-# Explicitly bind tools to LLM for consistent JSON format
-llm_with_tools = ChatDatabricks(endpoint="claude-sonnet-4").bind_tools(tools)
+# ✅ GOOD: Explicitly bind tools
+llm_with_tools = llm.bind_tools(tools)
 agent = create_react_agent(llm_with_tools, tools)
 ```
 
-**2. Tool Input Schemas** (Pydantic):
+**Why?** Ensures consistent JSON formatting, eliminates XML parse errors.
+
+### 3. Tool Input Schemas (Type Safety)
+
 ```python
 from pydantic import BaseModel, Field
 
 class ClassifyInput(BaseModel):
-    ticket_text: str = Field(description="The support ticket text to classify")
+    ticket_text: str = Field(description="The text to classify")
 ```
 
-**3. ReAct Loop**:
-```
-1. Think: Analyze ticket complexity
-2. Act: Call necessary tools
-3. Observe: Review tool outputs
-4. Decide: Determine if more tools needed
-5. Respond: Provide final analysis
-```
+### 4. Adaptive vs Sequential
 
-## 📚 About This Reference Architecture
+**Sequential**:
+- Always runs all tools
+- Predictable execution
+- Higher cost for simple tasks
 
-This is a production-ready reference architecture demonstrating:
-
-- ✅ Complete end-to-end AI system on Databricks
-- ✅ Five progressive approaches (simple → sophisticated)
-- ✅ Modern AI agent patterns (LangChain + LangGraph)
-- ✅ Cost-optimized serverless architecture
-- ✅ Multi-environment deployment (dev/staging/prod)
-
-**Adapt this for**:
-- Customer service routing
-- Email classification
-- Document processing
-- Incident management
-- Any classification/routing workflow
-
-## 🤝 Contributing
-
-Feel free to:
-- Customize UC functions for your domain
-- Add more knowledge base documents
-- Extend the classification workflow
-- Improve the dashboard UI
-
-## 🚀 Production Readiness
-
-This system is production-ready with:
-
-- ✅ Automated deployment via Databricks Asset Bundles
-- ✅ Multi-environment support (dev/staging/prod)
-- ✅ Cost optimization (estimated <$0.002/ticket)
-- ✅ High accuracy (95%+ tested)
-- ✅ Fast processing (<3 seconds)
-- ✅ Secure (service principal + Unity Catalog governance)
-- ✅ Scalable (autoscaling clusters, serverless functions)
-
-## 📞 Contact & Links
-
-- **GitHub**: [https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch](https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch)
-- **LinkedIn**: [Connect for questions and discussions](#)
-- **Databricks**: [Unity Catalog AI Functions](https://docs.databricks.com/en/large-language-models/ai-functions.html)
+**Adaptive (ReAct)**:
+- Chooses tools based on need
+- 40-60% cost savings on simple tasks
+- More intelligent behavior
 
 ---
 
-**Built with ❤️ using Databricks Unity Catalog + LangChain + LangGraph**
+## 🛠️ Technology Stack
+
+- **LangGraph**: 1.0+ (state machine for agents)
+- **LangChain**: 0.3+ (tool abstractions)
+- **Databricks SDK**: WorkspaceClient for API calls
+- **Unity Catalog**: Serverless AI Functions
+- **Vector Search**: Semantic retrieval
+- **Genie API**: Natural language SQL queries
+- **Claude Sonnet 4**: Recommended LLM (via Databricks FMAPI)
+
+---
+
+## 📖 Learning Path
+
+### Beginner (1-2 hours)
+
+1. Read `LANGRAPH_FOR_FRIENDS.md`
+2. Run notebook cells 1-5 (Setup & Individual Tools)
+3. Understand tool wrappers
+
+### Intermediate (2-3 hours)
+
+1. Complete full notebook
+2. Build sequential agent
+3. Build ReAct agent
+4. Compare results
+
+### Advanced (3-4 hours)
+
+1. Read `LANGRAPH_ARCHITECTURE.md`
+2. Study `REFERENCE_23_langraph_agent_learning.py`
+3. Customize for your use case
+4. Implement in production
+
+---
+
+## 🎨 Real-World Example
+
+### Simple Task (Password Reset)
+
+```
+🧠 Agent Thought: "Standard password reset"
+🔧 Tool 1: classify_ticket() → P3, Access
+🔧 Tool 2: search_knowledge() → KB-001 solution
+💡 Response: "Follow KB-001 for password reset"
+Cost: $0.0005 | Time: 1.2s
+```
+
+### Complex Task (Database Outage)
+
+```
+🧠 Agent Thought: "Critical database issue"
+🔧 Tool 1: classify_ticket() → P1, Database
+🔧 Tool 2: extract_metadata() → Multiple systems affected
+🔧 Tool 3: search_knowledge() → No exact match
+🔧 Tool 4: query_historical() → 3 similar P1 tickets
+💡 Response: "Critical outage. Similar incidents resolved by restarting replica (avg 15min)"
+Cost: $0.0018 | Time: 4.1s
+```
+
+---
+
+## 🐛 Common Issues & Solutions
+
+### 1. XML Format Errors
+
+**Problem**: Agent returns XML instead of JSON
+
+**Solution**: Use `llm.bind_tools(tools)` pattern
+
+### 2. Tool Not Found
+
+**Problem**: "Tool 'classify_ticket' not found"
+
+**Solution**: Verify tool name matches exactly in schema and tool list
+
+### 3. Authentication Errors
+
+**Problem**: 403/401 errors calling Databricks APIs
+
+**Solution**: Ensure WorkspaceClient() is initialized correctly and cluster has permissions
+
+### 4. Timeout Errors (Genie)
+
+**Problem**: Genie queries timeout
+
+**Solution**: Implement polling with exponential backoff (shown in notebook)
+
+---
+
+## 🔗 Additional Resources
+
+### From This Project
+
+- **Main Project**: [Full AI Support Ticket System](https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch)
+- **LinkedIn Article**: [Reference Architecture Blog Post](#) (detailed writeup)
+
+### Databricks Documentation
+
+- [Unity Catalog AI Functions](https://docs.databricks.com/en/large-language-models/ai-functions.html)
+- [Vector Search](https://docs.databricks.com/en/generative-ai/vector-search.html)
+- [Genie API](https://docs.databricks.com/en/genie/genie-api.html)
+
+### LangChain & LangGraph
+
+- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
+- [ReAct Pattern Paper](https://arxiv.org/abs/2210.03629)
+- [LangChain Tools](https://python.langchain.com/docs/modules/agents/tools/)
+
+---
+
+## 🤝 Contributing
+
+Found an issue or have improvements? 
+
+1. Open an issue on the [main repository](https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch/issues)
+2. Submit a pull request
+3. Share your feedback!
+
+---
+
+## 📝 License
+
+This tutorial is part of the databricks-ai-ticket-vectorsearch project.
+
+[Add your license here]
+
+---
+
+## 🙏 Acknowledgments
+
+This tutorial is extracted from a production reference architecture built for AI-powered support ticket classification. The patterns demonstrated here are battle-tested and production-ready.
+
+**Main Project Contributors**: [Your Name and Co-Authors]
+
+---
+
+## 💬 Questions?
+
+- **Issues**: [GitHub Issues](https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch/issues)
+- **Discussions**: [GitHub Discussions](#)
+- **LinkedIn**: [Connect for questions](#)
+
+---
+
+**Built with ❤️ using Databricks, LangChain, and LangGraph**
+
+---
+
+## 🚀 Next Steps
+
+After completing this tutorial:
+
+1. ⭐ **Star the repository** if you found it useful!
+2. 📖 **Explore the full project** for production deployment patterns
+3. 🔧 **Adapt for your use case** (customer service, email classification, etc.)
+4. 🎓 **Share your learnings** - help others discover these patterns!
+
+**Happy Learning!** 🎉
