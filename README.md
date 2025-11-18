@@ -57,35 +57,66 @@ By completing this tutorial, you will learn how to:
 
 ## 🚀 Quick Start
 
-### 1. Clone this Tutorial
+### For Complete Beginners
+
+**📖 NEW: [Complete Beginner's Tutorial](BEGINNER_TUTORIAL.md)**
+
+Step-by-step guide that assumes NO prior experience with:
+- Databricks
+- LangChain
+- LangGraph
+- AI Agents
+
+**Start here if you're new!** → [`BEGINNER_TUTORIAL.md`](BEGINNER_TUTORIAL.md)
+
+### For Experienced Users
+
+**1. Deploy with Databricks Asset Bundles (Recommended)**
 
 ```bash
+# Install Databricks CLI
+curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+
+# Configure authentication
+databricks configure --token
+
+# Clone and deploy
 git clone https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch.git
 cd databricks-ai-ticket-vectorsearch
 git checkout langgraph-databricks-tutorial
+
+# Update databricks.yml with your config
+# Then deploy
+databricks bundle deploy --target dev
 ```
 
-### 2. Install Dependencies
+**📋 Full deployment guide**: [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md)
+
+**2. Manual Setup**
 
 ```bash
+# Clone repository
+git clone https://github.com/bigdatavik/databricks-ai-ticket-vectorsearch.git
+cd databricks-ai-ticket-vectorsearch
+git checkout langgraph-databricks-tutorial
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Upload tutorial/23_langraph_agent_learning.py to Databricks
+# Upload setup_uc_functions.py to Databricks
+
+# Run setup_uc_functions.py to create AI Functions
+# Then run the tutorial notebook
 ```
 
-### 3. Upload Notebook to Databricks
+**3. Quick Configuration**
 
-Upload `tutorial/23_langraph_agent_learning.py` to your Databricks workspace.
-
-### 4. Configure the Notebook
-
-Update these variables in the notebook:
+Update these in the tutorial notebook:
 - `CATALOG` - Your Unity Catalog name
-- `SCHEMA` - Your schema name
+- `SCHEMA` - Your schema name  
 - `WAREHOUSE_ID` - Your SQL Warehouse ID
-- `CLUSTER_ID` - Your cluster ID (for WorkspaceClient)
-
-### 5. Run the Tutorial
-
-Follow the notebook step-by-step to build your first LangGraph agent!
+- `CLUSTER_ID` - Your cluster ID
 
 ---
 

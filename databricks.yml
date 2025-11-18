@@ -1,0 +1,147 @@
+# Databricks Asset Bundle Configuration for LangGraph Tutorial
+# This file defines how to deploy the tutorial to your Databricks workspace
+
+bundle:
+  name: langraph-tutorial
+
+# Variables that can be customized per environment
+variables:
+  # Unity Catalog configuration
+  catalog:
+    description: "Unity Catalog name for AI functions and data"
+    default: "langraph_tutorial"
+  
+  schema:
+    description: "Schema name within the catalog"
+    default: "agents"
+  
+  # Compute configuration
+  cluster_id:
+    description: "Existing cluster ID to attach notebooks to"
+    default: "your-cluster-id"  # Update this with your cluster ID
+  
+  warehouse_id:
+    description: "SQL Warehouse ID for running queries"
+    default: "your-warehouse-id"  # Update this with your warehouse ID
+  
+  # Optional: Vector Search configuration
+  vector_search_endpoint:
+    description: "Vector Search endpoint name"
+    default: "langraph_tutorial_endpoint"
+  
+  vector_search_index:
+    description: "Vector Search index name"
+    default: "${var.catalog}.${var.schema}.knowledge_base_index"
+
+# Workspace configuration
+workspace:
+  host: https://your-workspace.cloud.databricks.com  # Update with your workspace URL
+  root_path: ~/.bundle/${bundle.name}/${bundle.target}
+
+# Include configuration
+include:
+  - "*.yml"
+  - "tutorial/**"
+  - "docs/**"
+  - "requirements.txt"
+  - "README.md"
+  - "BEGINNER_TUTORIAL.md"
+
+# Deployment targets
+targets:
+  # Development environment
+  dev:
+    mode: development
+    default: true
+    workspace:
+      root_path: ~/.bundle/${bundle.name}/dev
+    
+    # Development-specific variables
+    variables:
+      catalog: "langraph_tutorial_dev"
+      schema: "agents_dev"
+  
+  # Staging environment
+  staging:
+    mode: production
+    workspace:
+      root_path: ~/.bundle/${bundle.name}/staging
+      # host: https://your-staging-workspace.cloud.databricks.com  # Optional: different workspace
+    
+    variables:
+      catalog: "langraph_tutorial_staging"
+      schema: "agents"
+  
+  # Production environment
+  prod:
+    mode: production
+    workspace:
+      root_path: ~/.bundle/${bundle.name}/prod
+      # host: https://your-prod-workspace.cloud.databricks.com  # Optional: different workspace
+    
+    variables:
+      catalog: "langraph_tutorial"
+      schema: "agents"
+
+# Resources to deploy
+resources:
+  # Tutorial notebook
+  notebooks:
+    langraph_tutorial:
+      path: ./tutorial/23_langraph_agent_learning.py
+      
+  # Documentation files
+  files:
+    tutorial_docs:
+      source: ./docs/
+      target: docs/
+    
+    readme:
+      source: ./README.md
+      target: README.md
+    
+    beginner_guide:
+      source: ./BEGINNER_TUTORIAL.md
+      target: BEGINNER_TUTORIAL.md
+    
+    requirements:
+      source: ./requirements.txt
+      target: requirements.txt
+
+# Optional: Jobs (for automated running)
+# Uncomment to enable scheduled tutorial runs or CI/CD
+#  jobs:
+#    tutorial_validation:
+#      name: "Validate LangGraph Tutorial"
+#      
+#      tasks:
+#        - task_key: run_tutorial
+#          notebook_task:
+#            notebook_path: ${workspace.root_path}/tutorial/23_langraph_agent_learning.py
+#          
+#          existing_cluster_id: ${var.cluster_id}
+#      
+#      # Optional: Schedule to run daily
+#      schedule:
+#        quartz_cron_expression: "0 0 9 * * ?"  # 9 AM daily
+#        timezone_id: "America/Los_Angeles"
+#      
+#      # Email notifications
+#      email_notifications:
+#        on_failure:
+#          - your-email@company.com
+
+# Optional: Experiments (for MLflow tracking)
+#  experiments:
+#    langraph_tutorial:
+#      name: /Users/${workspace.current_user.userName}/langraph-tutorial-experiments
+
+# Permissions
+# Uncomment to set specific permissions
+#permissions:
+#  - level: CAN_MANAGE
+#    user_name: your-email@company.com
+#  
+#  - level: CAN_VIEW
+#    group_name: data-scientists
+
