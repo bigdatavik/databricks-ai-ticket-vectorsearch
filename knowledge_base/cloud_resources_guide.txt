@@ -1,0 +1,88 @@
+CLOUD RESOURCES MANAGEMENT GUIDE
+==================================
+
+This document provides guidance for managing cloud resources and troubleshooting cloud-related issues.
+
+AWS EC2 INSTANCE MANAGEMENT
+---------------------------
+
+Starting Instances (Priority P3):
+- Verify instance type matches requirements
+- Check security group configurations
+- Ensure proper IAM roles are attached
+- Review instance tags for cost allocation
+- Confirm network access rules
+
+Stopping Instances (Priority P3):
+- Verify no critical workloads are running
+- Check for attached EBS volumes
+- Review auto-scaling group configurations
+- Confirm backup schedules are complete
+- Document reason for stopping
+
+Instance Scaling (Priority P2):
+- Monitor CPU and memory utilization
+- Review CloudWatch metrics
+- Calculate optimal instance size
+- Test scaling in staging environment
+- Update auto-scaling policies
+- Notify affected teams before scaling
+
+AZURE RESOURCE MANAGEMENT
+-------------------------
+
+Resource Group Organization (Priority P3):
+- Group related resources together
+- Use consistent naming conventions
+- Apply tags for cost tracking
+- Review resource dependencies
+- Document resource purposes
+
+Virtual Machine Operations (Priority P2):
+- Verify VM size meets requirements
+- Check disk configurations
+- Review network security groups
+- Confirm backup policies are active
+- Monitor resource usage trends
+
+Storage Account Management (Priority P2):
+- Review access tiers (hot/cool/archive)
+- Monitor storage costs
+- Check replication settings
+- Verify encryption configurations
+- Review access policies
+
+CLOUD COST OPTIMIZATION
+-----------------------
+
+Right-Sizing Resources (Priority P3):
+- Analyze utilization metrics
+- Identify underutilized instances
+- Consider reserved instances for steady workloads
+- Review storage tier configurations
+- Implement auto-scaling policies
+
+Cost Monitoring (Priority P3):
+- Set up billing alerts
+- Review cost allocation tags
+- Analyze cost trends monthly
+- Identify unexpected charges
+- Optimize data transfer costs
+
+RESOURCE CLEANUP PROCEDURES
+---------------------------
+
+Identifying Unused Resources (Priority P3):
+- Review resource creation dates
+- Check last access timestamps
+- Verify with resource owners
+- Document dependencies
+- Create cleanup schedule
+
+Safe Deletion Process (Priority P2):
+- Backup important data
+- Verify no active dependencies
+- Get approval from resource owner
+- Document deletion reason
+- Monitor for 48 hours after deletion
+

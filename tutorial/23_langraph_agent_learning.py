@@ -148,12 +148,12 @@ print(f"👤 Current user: {w.current_user.me().user_name}")
 
 # COMMAND ----------
 
-# Configuration (same as dashboard and databricks.yml)
-CATALOG = "classify_tickets_new_dev"  # Unity Catalog name
-SCHEMA = "support_ai"  # Schema containing tables and functions
-WAREHOUSE_ID = "148ccb90800933a1"  # SQL warehouse for UC function execution
+# Configuration - Tutorial environment (independent from main project)
+CATALOG = "langtutorial"  # Tutorial catalog (created in setup_catalog_schema.py)
+SCHEMA = "agents"  # Schema containing tables and functions
+WAREHOUSE_ID = "your-warehouse-id"  # ← UPDATE THIS: Your SQL Warehouse ID
 INDEX_NAME = f"{CATALOG}.{SCHEMA}.knowledge_base_index"  # Vector search index
-GENIE_SPACE_ID = "01f0b91aa91c1b0c8cce6529ea09f0a8"  # Genie space for historical queries
+GENIE_SPACE_ID = "your-genie-space-id"  # ← UPDATE THIS: Copy from Genie UI after creating space
 
 # LLM Configuration
 # 🚨 CRITICAL: Use Claude Sonnet 4 for production agents with function calling

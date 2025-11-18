@@ -1,10 +1,12 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Unity Catalog AI Functions Setup
+# MAGIC # Setup 2: Unity Catalog AI Functions
 # MAGIC 
 # MAGIC This notebook creates the required AI Functions for the LangGraph tutorial.
 # MAGIC 
-# MAGIC **Run this ONCE before starting the tutorial.**
+# MAGIC **⚠️ PREREQUISITES:** You must run `setup_catalog_schema.py` FIRST!
+# MAGIC 
+# MAGIC This creates the UC Functions in the `langtutorial.agents` schema.
 # MAGIC 
 # MAGIC ## What This Creates
 # MAGIC 
@@ -31,8 +33,8 @@
 # CONFIGURATION - Update these values!
 # ========================================
 
-CATALOG = "langraph_tutorial"  # Must match databricks.yml
-SCHEMA = "agents"              # Must match databricks.yml
+CATALOG = "langtutorial"  # Tutorial catalog (created in setup_catalog_schema.py)
+SCHEMA = "agents"             # Must match databricks.yml
 
 # LLM to use for AI functions
 LLM_MODEL = "databricks-meta-llama-3-1-70b-instruct"

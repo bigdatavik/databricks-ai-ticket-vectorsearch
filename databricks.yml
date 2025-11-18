@@ -9,7 +9,7 @@ variables:
   # Unity Catalog configuration
   catalog:
     description: "Unity Catalog name for AI functions and data"
-    default: "langraph_tutorial"
+    default: "langtutorial"
   
   schema:
     description: "Schema name within the catalog"
@@ -24,10 +24,10 @@ variables:
     description: "SQL Warehouse ID for running queries"
     default: "your-warehouse-id"  # Update this with your warehouse ID
   
-  # Optional: Vector Search configuration
+  # Vector Search configuration
   vector_search_endpoint:
-    description: "Vector Search endpoint name"
-    default: "langraph_tutorial_endpoint"
+    description: "Vector Search endpoint name (shared, create if not exists)"
+    default: "one-env-shared-endpoint-2"
   
   vector_search_index:
     description: "Vector Search index name"
