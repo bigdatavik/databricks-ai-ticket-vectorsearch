@@ -18,11 +18,11 @@ variables:
   # Compute configuration
   cluster_id:
     description: "Existing cluster ID to attach notebooks to"
-    default: "your-cluster-id"  # Update this with your cluster ID
+    default: "0304-162117-qgsi1x04"  # From MY_ENVIRONMENT.md
   
   warehouse_id:
     description: "SQL Warehouse ID for running queries"
-    default: "your-warehouse-id"  # Update this with your warehouse ID
+    default: "148ccb90800933a1"  # From MY_ENVIRONMENT.md
   
   # Vector Search configuration
   vector_search_endpoint:
@@ -35,17 +35,24 @@ variables:
 
 # Workspace configuration
 workspace:
-  host: https://your-workspace.cloud.databricks.com  # Update with your workspace URL
+  host: https://adb-984752964297111.11.azuredatabricks.net  # From MY_ENVIRONMENT.md
   root_path: ~/.bundle/${bundle.name}/${bundle.target}
 
-# Include configuration
+# Include configuration (only YAML/JSON files)
 include:
   - "*.yml"
-  - "tutorial/**"
-  - "docs/**"
-  - "requirements.txt"
-  - "README.md"
-  - "BEGINNER_TUTORIAL.md"
+
+# Sync configuration (for all other files)
+sync:
+  include:
+    - "notebooks/**"
+    - "tutorial/**"
+    - "docs/**"
+    - "knowledge_base/**"
+    - "requirements.txt"
+    - "README.md"
+    - "BEGINNER_TUTORIAL.md"
+    - "SETUP_INSTRUCTIONS.md"
 
 # Deployment targets
 targets:
@@ -83,30 +90,7 @@ targets:
       catalog: "langraph_tutorial"
       schema: "agents"
 
-# Resources to deploy
-resources:
-  # Tutorial notebook
-  notebooks:
-    langraph_tutorial:
-      path: ./tutorial/23_langraph_agent_learning.py
-      
-  # Documentation files
-  files:
-    tutorial_docs:
-      source: ./docs/
-      target: docs/
-    
-    readme:
-      source: ./README.md
-      target: README.md
-    
-    beginner_guide:
-      source: ./BEGINNER_TUTORIAL.md
-      target: BEGINNER_TUTORIAL.md
-    
-    requirements:
-      source: ./requirements.txt
-      target: requirements.txt
+# Resources to deploy (jobs, apps, etc - not needed for tutorial)
 
 # Optional: Jobs (for automated running)
 # Uncomment to enable scheduled tutorial runs or CI/CD
