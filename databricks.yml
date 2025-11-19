@@ -9,7 +9,7 @@ variables:
   # Unity Catalog configuration
   catalog:
     description: "Unity Catalog name for AI functions and data"
-    default: "langtutorial"
+    default: "langtutorial_vik"
   
   schema:
     description: "Schema name within the catalog"

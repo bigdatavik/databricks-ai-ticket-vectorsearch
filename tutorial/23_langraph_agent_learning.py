@@ -149,7 +149,7 @@ print(f"👤 Current user: {w.current_user.me().user_name}")
 # COMMAND ----------
 
 # Configuration - Tutorial environment (independent from main project)
-CATALOG = "langtutorial"  # Tutorial catalog (created in setup_catalog_schema.py)
+CATALOG = "langtutorial_vik"  # Tutorial catalog (created in setup_catalog_schema.py)
 SCHEMA = "agents"  # Schema containing tables and functions
 WAREHOUSE_ID = "your-warehouse-id"  # ← UPDATE THIS: Your SQL Warehouse ID
 INDEX_NAME = f"{CATALOG}.{SCHEMA}.knowledge_base_index"  # Vector search index

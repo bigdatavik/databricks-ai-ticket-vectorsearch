@@ -25,7 +25,7 @@ from datetime import datetime
 try:
     CATALOG = dbutils.widgets.get("catalog")
 except:
-    CATALOG = "langtutorial"  # Tutorial catalog
+    CATALOG = "langtutorial_vik"  # Tutorial catalog
 
 SCHEMA = "agents"
 VOLUME = "knowledge_docs"

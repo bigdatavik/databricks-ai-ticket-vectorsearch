@@ -36,7 +36,7 @@ import time
 try:
     CATALOG = dbutils.widgets.get("catalog")
 except:
-    CATALOG = "langtutorial"
+    CATALOG = "langtutorial_vik"
 
 SCHEMA = "agents"
 TABLE_NAME = "knowledge_base"

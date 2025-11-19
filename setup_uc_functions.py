@@ -33,7 +33,7 @@
 # CONFIGURATION - Update these values!
 # ========================================
 
-CATALOG = "langtutorial"  # Tutorial catalog (created in setup_catalog_schema.py)
+CATALOG = "langtutorial_vik"  # Tutorial catalog (created in setup_catalog_schema.py)
 SCHEMA = "agents"             # Must match databricks.yml
 
 # LLM to use for AI functions

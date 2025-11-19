@@ -39,7 +39,7 @@ import random
 try:
     CATALOG = dbutils.widgets.get("catalog")
 except:
-    CATALOG = "langtutorial"
+    CATALOG = "langtutorial_vik"
 
 SCHEMA = "agents"
 TABLE_NAME = "ticket_history"
