@@ -37,7 +37,8 @@ CATALOG = "langtutorial_vik"  # Tutorial catalog (created in setup_catalog_schem
 SCHEMA = "agents"             # Must match databricks.yml
 
 # LLM to use for AI functions
-LLM_MODEL = "databricks-meta-llama-3-3-70b-instruct"  # Updated to available model
+# Following lesson from MY_ENVIRONMENT.md: Claude Sonnet 4 is BEST for function calling
+LLM_MODEL = "databricks-claude-sonnet-4"  # ✅ Reliable JSON format
 
 print(f"✅ Configuration:")
 print(f"   Catalog: {CATALOG}")
@@ -87,7 +88,7 @@ RETURNS STRUCT<
 >
 COMMENT 'Classifies support tickets by priority and category using LLM'
 RETURN ai_query(
-  '{LLM_MODEL}',
+  'databricks-claude-sonnet-4',
   CONCAT(
     'You are a support ticket classifier. Analyze this ticket and classify it.\\n\\n',
     'Priority Levels:\\n',
@@ -129,7 +130,7 @@ RETURNS STRUCT<
 >
 COMMENT 'Extracts key metadata from support tickets using LLM'
 RETURN ai_query(
-  '{LLM_MODEL}',
+  'databricks-claude-sonnet-4',
   CONCAT(
     'You are a support ticket analyzer. Extract structured information from this ticket.\\n\\n',
     'Extract:\\n',
