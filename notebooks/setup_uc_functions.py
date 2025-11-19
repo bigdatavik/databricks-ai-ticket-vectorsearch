@@ -37,7 +37,7 @@ CATALOG = "langtutorial_vik"  # Tutorial catalog (created in setup_catalog_schem
 SCHEMA = "agents"             # Must match databricks.yml
 
 # LLM to use for AI functions
-LLM_MODEL = "databricks-meta-llama-3-1-70b-instruct"
+LLM_MODEL = "databricks-meta-llama-3-3-70b-instruct"  # Updated to available model
 
 print(f"✅ Configuration:")
 print(f"   Catalog: {CATALOG}")
